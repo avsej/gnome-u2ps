@@ -66,6 +66,7 @@ const struct {
   { "zh_CN", "AR PL KaitiM GB" },
   { "zh_TW", "AR PL KaitiM Big5" },
   { "zh_HK", "AR PL KaitiM Big5" },
+  { "ar", "KacstBook" },
   { NULL, NULL }
 };
 
@@ -365,6 +366,10 @@ int main(int argc, char** argv) {
       tmpbuf[strlen(tmpbuf)-1] = '\0';
   }
 
+  if( !input_encoding && parse_mail ) {
+    input_encoding = get_charset(text_slist);
+  }
+
   /* Japanese codeset auto detection - iso-2022-jp */
   /* Just check the 8th bit for simplify */
   if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
@@ -412,7 +417,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  //g_print("input_encoding: %s\n", input_encoding);
+  //g_print("input_encoding: \"%s\"\n", input_encoding);
 
   /* Encoding option */
   if( input_encoding ) {
@@ -464,6 +469,8 @@ int main(int argc, char** argv) {
   }
 
   /* Replace tab to 8 spaces */
+  /* Tab handling should be later as possible, for the sake of
+     mail header handling */
   for(i=0;i<g_slist_length(text_slist);i++) {
     gchar* tmpbuf = g_slist_nth_data(text_slist, i);
     if( strstr(tmpbuf, "\t") ) {

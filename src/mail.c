@@ -58,7 +58,7 @@ subject_decode(guchar* subject) {
     return g_strdup(subject);
   }
 
-  if( !g_strncasecmp(cursor+2, "iso-2022-jp?b?", strlen("iso-2022-jp?b?")) ){
+  if( !g_ascii_strncasecmp(cursor+2, "iso-2022-jp?b?", strlen("iso-2022-jp?b?")) ){
   } else {
     return g_strdup(subject);
   }
@@ -98,6 +98,69 @@ subject_decode(guchar* subject) {
 }
 
 gchar*
+get_charset(GSList* mail_slist)
+{
+  gchar* charset = NULL;
+  gchar* content_type = NULL;
+  gchar* tmpbuf;
+
+  g_return_val_if_fail(mail_slist != NULL, NULL);
+  g_return_val_if_fail(g_slist_length(mail_slist) > 0, NULL);
+
+  gint i;
+  for(i=0;i<g_slist_length(mail_slist);i++) {
+    gchar* text = g_slist_nth_data(mail_slist, i);
+
+    /* Header end */
+    if( *text == '\0' )
+      break;
+
+    if( !g_ascii_strncasecmp(text, "Content-Type: ", strlen("Content-Type: ")) ) {
+      content_type = g_strdup(text);
+      continue;
+    }
+
+    if( content_type ) {
+      if( *text == '\t' || *text == ' ' ) {
+        tmpbuf = g_strconcat(content_type, text, NULL);
+        g_free(content_type);
+        content_type = tmpbuf;
+      } else {
+        break;
+      }
+    }
+  }
+
+  if( !content_type )
+    return NULL;
+
+  tmpbuf = content_type;
+  content_type = g_ascii_strdown(tmpbuf, -1);
+  g_free(tmpbuf);
+
+  charset = strstr(content_type, "charset=");
+  if( !charset ) {
+    g_free(content_type);
+    return NULL;
+  }
+
+  charset += strlen("charset=");
+
+  if( *charset == '\"' ) {
+    g_assert(strstr(charset+1, "\"") != NULL);
+    tmpbuf = g_strndup(charset+1, strstr(charset+1, "\"")-(charset+1));
+    charset = tmpbuf;
+  } else {
+    charset = g_strchomp(charset);
+    charset = g_strdup(charset);
+  }
+
+  g_free(content_type);
+
+  return charset;
+}
+
+gchar*
 get_subject(GSList* mail_slist)
 {
   gchar* result;
@@ -124,7 +187,7 @@ get_subject(GSList* mail_slist)
       break;
     }
 
-    if( !g_strncasecmp(buf, "subject:", strlen("subject:")) ) {
+    if( !g_ascii_strncasecmp(buf, "subject:", strlen("subject:")) ) {
       gchar* decoded = subject_decode(buf + strlen("subject: "));
       sbj_start = TRUE;
       tmpbuf = g_strconcat(subject, decoded, NULL);
@@ -185,7 +248,7 @@ cut_headers(GSList* mail_slist)
     }
     //new_slist = g_slist_append(new_slist, text);
     for(j=0;worthy_headers[j] != NULL;j++) {
-      if( !g_strncasecmp(text, worthy_headers[j], strlen(worthy_headers[j])) ) {
+      if( !g_ascii_strncasecmp(text, worthy_headers[j], strlen(worthy_headers[j])) ) {
         new_slist = g_slist_append(new_slist, text);
         break;
       }

@@ -25,6 +25,7 @@
 
 #include <glib.h>
 
+gchar* get_charset(GSList* mail_slist);
 gchar* get_subject(GSList* mail_slist);
 GSList* cut_headers(GSList* mail_slist);
 
