@@ -1,3 +1,7 @@
+2004-04-05  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* Release 0.0.1
+
 2004-04-04  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Add English hyphenation.

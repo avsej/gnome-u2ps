@@ -5,4 +5,4 @@ EXTRA_DIST = \
 	intltool-extract.in	\
 	intltool-merge.in	\
 	intltool-update.in	\
-	autogen.sh
+	gnome-u2ps.spec

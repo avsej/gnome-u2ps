@@ -12,3 +12,4 @@ libtool
 missing
 mkinstalldirs
 *.tar.gz
+*.spec
