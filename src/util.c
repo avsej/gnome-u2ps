@@ -102,7 +102,7 @@ u2ps_iso2022jp_to_utf8(gchar* str)
   }
   if( conv_error ) {
     g_warning("%s\n", conv_error->message);
-    debug_dump(str+bytes_read);
+    //debug_dump(str+bytes_read);
     g_error_free(conv_error);
     return NULL;
   }
@@ -187,4 +187,13 @@ debug_dump(guchar* str)
   }
 
   g_print("\n");
+}
+
+void
+dump_text_slist(GSList* text_slist) {
+  guint i = 0;
+
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    g_print("%s\n", g_slist_nth_data(text_slist, i));
+  }
 }

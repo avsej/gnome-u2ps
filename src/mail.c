@@ -44,6 +44,33 @@ static const gchar* visible_headers[] = {
   NULL,
 };
 
+/* Headers which need base64 decode */
+static const gchar* mime_headers[] = {
+  "From",
+  "To",
+  "Cc",
+  "Reply-To",
+  "User-Agent",
+  "Subject",
+  NULL,
+};
+
+const gchar*
+is_header_match(const gchar* header, const gchar* header_list[]) {
+  guint i = 0;
+
+  g_return_val_if_fail(header != NULL, FALSE);
+
+  while(header_list[i] != NULL) {
+    if( !g_ascii_strncasecmp(header, header_list[i], strlen(header_list[i]))
+        && !strncmp(header + strlen(header_list[i]), ": ", 2) )
+      return header_list[i];
+    i++;
+  }
+
+  return NULL;
+}
+
 static const guchar* hexchar = "0123456789ABCDEF";
 
 /* Get a header line from GSList.
@@ -316,7 +343,7 @@ decode_qp_message(GSList* body_slist) {
 }
 
 static guchar*
-base64_decode_simple(guchar* str) {
+base64_decode(guchar* str) {
   const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   guchar* result = NULL;
   guchar* cursor = NULL;
@@ -352,7 +379,7 @@ base64_decode_simple(guchar* str) {
 
 /* Returns UTF-8 str */
 static gchar*
-base64_decode_sub(guchar* subject) {
+header_base64_decode_sub(guchar* subject) {
   const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   guchar* cursor;
   guchar* result = g_strdup("");
@@ -498,15 +525,15 @@ base64_decode_sub(guchar* subject) {
 
 /* Recurse base64 decode */
 gchar*
-base64_decode(guchar* str) {
+header_base64_decode(guchar* str) {
   gchar* tmpbuf = NULL;
-  gchar* decoded = base64_decode_sub(str);
+  gchar* decoded = header_base64_decode_sub(str);
 
   if( !decoded )
     return g_strdup(str);
 
   while( strstr(decoded, "=?") ) {
-    tmpbuf = base64_decode_sub(decoded);
+    tmpbuf = header_base64_decode_sub(decoded);
 
     if( !tmpbuf )
       break;
@@ -747,12 +774,12 @@ multi_part_new(GSList* mpart_slist) {
 
   /* Base64 decode */
   if( result->name ) {
-    tmpbuf = base64_decode(result->name);
+    tmpbuf = header_base64_decode(result->name);
     g_free(result->name);
     result->name = tmpbuf;
   }
   if( result->filename ) {
-    tmpbuf = base64_decode(result->filename);
+    tmpbuf = header_base64_decode(result->filename);
     g_free(result->filename);
     result->filename = tmpbuf;
   }
@@ -907,7 +934,7 @@ get_subject(GSList* mail_slist)
     }
 
     if( !g_ascii_strncasecmp(buf, "subject:", strlen("subject:")) ) {
-      gchar* decoded = base64_decode(buf + strlen("subject: "));
+      gchar* decoded = header_base64_decode(buf + strlen("subject: "));
       sbj_start = TRUE;
       tmpbuf = g_strconcat(subject, decoded, NULL);
       g_free(subject);
@@ -918,7 +945,7 @@ get_subject(GSList* mail_slist)
     }
     if( sbj_start ) {
       if( *buf == '\t' || *buf == ' ' ) { /* 2nd line subject */
-        gchar* decoded = base64_decode(buf+1);
+        gchar* decoded = header_base64_decode(buf+1);
         if( subject[strlen(subject)-1] == '\n' ) {
           subject[strlen(subject)-1] = '\0';
         }
@@ -940,7 +967,7 @@ get_subject(GSList* mail_slist)
 
   /* If there is other base64 part, recurse */
   while( strstr(subject, "=?") ) {
-    gchar* newsbj = base64_decode(subject);
+    gchar* newsbj = header_base64_decode(subject);
     if( !strcmp(newsbj, subject) ) {
       g_free(newsbj);
       break;
@@ -957,133 +984,89 @@ get_subject(GSList* mail_slist)
   return subject;
 }
 
-GSList*
-cut_headers(GSList* mail_slist)
-{
-  gint i,j;
-  GSList* new_slist = NULL;
-  gboolean visible_on = FALSE; /* Header is continuing */
-  gboolean subject_on = FALSE; /* Subject handling */
-
-  for(i=0;i<g_slist_length(mail_slist);i++) {
-    gchar* text = g_slist_nth_data(mail_slist, i);
-    if( !strcmp(text, "") ) {
-      /* Header end */
-      break;
-    }
-
-    /* Header 2nd line or more */
-    if( *text == '\t' || *text == ' ' ) {
-      if( subject_on )
-        continue;
-
-      if( visible_on ) {
-        new_slist = g_slist_append(new_slist, text);
-      }
-      continue;
-    }
-    visible_on = FALSE;
-    subject_on = FALSE;
-
-    /* Decode the subject */
-    if( !g_ascii_strncasecmp(text, "subject: ", strlen("subject: ")) ) {
-      gchar* subject = get_subject(mail_slist);
-      gchar* hprefix = g_strndup(text, strlen("subject: "));
-      g_free(text);
-      text = g_strconcat(hprefix, subject, NULL);
-      g_free(subject);
-      g_free(hprefix);
-      subject_on = TRUE;
-    }
-
-    for(j=0;visible_headers[j] != NULL;j++) {
-      if( !g_ascii_strncasecmp(text, visible_headers[j], strlen(visible_headers[j])) ) {
-        new_slist = g_slist_append(new_slist, text);
-        visible_on = TRUE;
-        break;
-      }
-    }
-  }
-  /* Append the rest */
-  for(;i<g_slist_length(mail_slist);i++) {
-    gchar* text = g_slist_nth_data(mail_slist, i);
-    new_slist = g_slist_append(new_slist, text);
-  }
-
-  /* Test */
-#if 0
-  for(i=0;i<g_slist_length(new_slist);i++) {
-    gchar* text = g_slist_nth_data(new_slist, i);
-    g_print("%s\n", text);
-  }
-#endif
-
-  return new_slist;
-}
-
 void
 mail_shape_header(Mail* mail) {
   guint i = 0;
-  GSList* header_slist = NULL;
+  GSList* visual_slist = NULL; /* Visual headers */
+  GSList* mean_slist = NULL; /* Header means */
   const gchar* text = NULL;
   gboolean is_visible = FALSE;
   gchar* tmpbuf = NULL;
-  guint j = 0;
+  GHashTable* header_ht = NULL;
 
   if( !mail )
     return;
 
+  header_ht = g_hash_table_new(g_str_hash, g_str_equal);
+
+  is_visible = FALSE;
   for(i=0;i<g_slist_length(mail->mail_slist);i++) {
     text = g_slist_nth_data(mail->mail_slist, i);
 
-    if( *text == '\0' )
-      break; /* Header end */
-
-    if( header_slist && is_visible && (*text == ' ' || *text == '\t') ) {
-      gchar* last = g_slist_last(header_slist)->data;
-      if( !last ) {
-        continue;
-      }
-      tmpbuf = g_strconcat(last, text+1, NULL);
-      g_free(last);
-      g_slist_last(header_slist)->data = tmpbuf;
-      continue;
+    if( *text == '\0' ) {
+      break;
     }
 
-    j = 0;
-    is_visible = FALSE;
-    while(visible_headers[j] != NULL) {
-      if( !g_ascii_strncasecmp(text, visible_headers[j], strlen(visible_headers[j])) && !strncmp(text + strlen(visible_headers[j]), ": ", 2) ) {
-        is_visible = TRUE;
-        break;
+    if( *text == ' ' || *text == '\t' ) {
+      if( is_visible ) {
+        gchar* last = g_slist_last(mean_slist)->data;
+        tmpbuf = g_strconcat(last, text, NULL);
+        g_free(last);
+        g_slist_last(mean_slist)->data = tmpbuf;
+
       }
-      j++;
     }
 
-    if( is_visible && mail->subject
-        && !g_ascii_strncasecmp(text, "Subject: ", strlen("Subject: ")) ) {
-      gchar* header_subject = g_strndup(text, strlen("Subject: "));
-      header_slist = g_slist_append(header_slist, g_strconcat(header_subject, mail->subject, NULL));
-      g_free(header_subject);
+    if( is_header_match(text, visible_headers) ) {
+      mean_slist = g_slist_append(mean_slist, g_strdup(text));
+      is_visible = TRUE;
+    } else {
       is_visible = FALSE;
+    }
+  }
+
+  for(i=0;i<g_slist_length(mean_slist);i++) {
+    const gchar* key = NULL;
+    text = g_slist_nth_data(mean_slist, i);
+    key = is_header_match(text, mime_headers);
+    if( key ) {
+      gchar* value = header_base64_decode((gchar*)text);
+      g_hash_table_insert(header_ht, (gpointer)key, value);
+    }
+  }
+
+  for(i=0;i<g_slist_length(mail->mail_slist);i++) {
+    const gchar* key = NULL;
+    text = g_slist_nth_data(mail->mail_slist, i);
+
+    if( *text == '\0' )
+      break;
+
+    if( *text == ' ' || *text == '\0' ) {
+      if( is_visible ) {
+        visual_slist = g_slist_append(visual_slist, g_strdup(text));
+      }
       continue;
     }
-    if( is_visible && mail->from
-        && !g_ascii_strncasecmp(text, "From: ", strlen("From: ")) ) {
-      gchar* header_from = g_strndup(text, strlen("From: "));
-      header_slist = g_slist_append(header_slist, g_strconcat(header_from, mail->from, NULL));
-      g_free(header_from);
+
+    is_visible = (is_header_match(text, visible_headers) != NULL);
+    key = is_header_match(text, mime_headers);
+
+    if( key ) {
+      gchar* value = g_hash_table_lookup(header_ht, key);
+      visual_slist = g_slist_append(visual_slist, g_strdup(value));
       is_visible = FALSE;
       continue;
     }
 
     if( is_visible ) {
-      header_slist = g_slist_append(header_slist, g_strdup(text));
+      visual_slist = g_slist_append(visual_slist, g_strdup(text));
     }
   }
 
+  g_hash_table_destroy(header_ht);
   g_slist_free(mail->header_slist);
-  mail->header_slist = header_slist;
+  mail->header_slist = visual_slist;
 }
 
 Mail*
@@ -1098,13 +1081,13 @@ mail_new(GSList* mail_slist) {
   /* Parse Subject */
   tmpbuf = (gchar*)get_a_header(result->header_slist, "Subject");
   if( tmpbuf ) {
-    result->subject = base64_decode(tmpbuf + strlen("Subject: "));
+    result->subject = header_base64_decode(tmpbuf + strlen("Subject: "));
   }
 
   /* Parse From */
   tmpbuf = (gchar*)get_a_header(result->header_slist, "From");
   if( tmpbuf ) {
-    result->from = base64_decode(tmpbuf + strlen("From: "));
+    result->from = header_base64_decode(tmpbuf + strlen("From: "));
   }
 
   /* QP check */
@@ -1142,7 +1125,7 @@ mail_new(GSList* mail_slist) {
     gchar** strpp = NULL;
     for(i=0;i<g_slist_length(result->body_slist);i++) {
       gchar* text = g_slist_nth_data(result->body_slist, i);
-      gchar* newtext = base64_decode_simple(text);
+      gchar* newtext = base64_decode(text);
       gchar* tmpbuf = total;
       if( !total ) {
         total = g_strdup(newtext);
