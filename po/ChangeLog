@@ -1,3 +1,8 @@
+2004-04-26  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* Add src/mail.c to the POTFILES.in
+	* ja.po: Update Japanese translation
+
 2004-03-30  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* ja.po: Update Japanese translation

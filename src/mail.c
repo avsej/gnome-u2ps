@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <libgnome/gnome-i18n.h>
 
 #include "util.h"
 #include "mail.h"
@@ -44,6 +45,180 @@ static const gchar* worthy_headers[] = {
 };
 
 static const guchar* hexchar = "0123456789ABCDEF";
+
+/* Get a header line from GSList.
+ *
+ * Returned value is NOT newly allocated.
+ * Argument header should NOT have ": " at the tail,
+ * like "Content-Type" or "From".
+ */
+static const gchar*
+get_a_header(GSList* header_slist, const gchar* header) {
+  guint i = 0;
+  const gchar* text = NULL;
+  gchar* headerstr = NULL;
+
+  g_return_val_if_fail(header != NULL, NULL);
+  g_return_val_if_fail(*header != '\0', NULL);
+  g_return_val_if_fail(!strchr(header, ':'), NULL);
+  g_return_val_if_fail(!strchr(header, ' '), NULL);
+
+  headerstr = g_strconcat(header, ": ", NULL);
+
+  for(i=0;i<g_slist_length(header_slist);i++) {
+    text = g_slist_nth_data(header_slist, i);
+    if( !g_ascii_strncasecmp(text, headerstr, strlen(headerstr)) ) {
+      g_free(headerstr);
+      return text;
+    }
+
+    if( *text == '\0' || *text == ' ' || *text == '\t' ) {
+      g_warning(_("Header handling is broken: %s\n"), text);
+    }
+  }
+
+  g_free(headerstr);
+  return NULL;
+}
+
+/* Get mimetype from Content-Type: header.
+ *
+ *  Returned value is newly acllocated.
+ */
+gchar*
+get_mimetype(GSList* header_slist) {
+  const gchar* header = get_a_header(header_slist, "Content-Type");
+  gchar* cursor = NULL;
+
+  if( !header )
+    return NULL;
+
+  header += strlen("Content-Type") + 2; /* Add extra strlen(": ") */
+  cursor = strchr(header, ';');
+  if( cursor ) {
+    return g_strndup(header, cursor - header);
+  }
+  
+  return NULL;
+}
+
+/* Get Header Property
+ *
+ *  Returned value is newly acllocated.
+ */
+gchar*
+get_header_property(GSList* header_slist, const gchar* header, const gchar* property) {
+  const gchar* text = NULL;
+  gchar* cursor = NULL;
+  gchar* propstr = NULL;
+  gchar* scolon = NULL; /* Semicolon ';' */
+  gchar* dquote = NULL; /* Double quote '"' */
+
+  g_return_val_if_fail(header != NULL, NULL);
+  g_return_val_if_fail(*header != '\0', NULL);
+  g_return_val_if_fail(!strchr(header, ':'), NULL);
+  g_return_val_if_fail(!strchr(header, ' '), NULL);
+  g_return_val_if_fail(property != NULL, NULL);
+  g_return_val_if_fail(*property != '\0', NULL);
+
+  text = get_a_header(header_slist, header);
+
+  if( !text )
+    return NULL;
+
+  text += strlen(header) + 2; /* Add an extra strlen(": ") */
+  propstr = g_strconcat(property, "=", NULL);
+
+  cursor = strstr(text, propstr);
+
+  if( !cursor ) {
+    g_free(propstr);
+    return NULL;
+  }
+
+  cursor += strlen(propstr);
+  g_free(propstr);
+
+  if( *cursor == '"' )
+    cursor++;
+
+  scolon = strchr(cursor, ';');
+  dquote = strchr(cursor, '"');
+
+  if( scolon == NULL && dquote == NULL ) {
+    return g_strdup(cursor);
+  } else if ( scolon != NULL && dquote != NULL ) {
+    return g_strndup(cursor, MIN(scolon, dquote)-cursor);
+  } else if( scolon != NULL ) {
+    return g_strndup(cursor, scolon-cursor);
+  } else { /* dquote != NULL */
+    return g_strndup(cursor, dquote-cursor);
+  }
+
+  return NULL; /* Never reach here, logically */
+}
+
+/* Get headers from mail or mpart
+ * 
+ *  Returned value is newly allocated.
+ */
+GSList*
+get_headers(GSList* msg_slist) {
+  guint i = 0;
+  GSList* header_slist = NULL;
+  const gchar* text = NULL;
+
+  for(i=0;i<g_slist_length(msg_slist);i++) {
+    text = g_slist_nth_data(msg_slist, i);
+
+    if( *text == '\0' )
+      break; /* Header end */
+
+    if( header_slist != NULL && (*text == ' ' || *text == '\t') ) {
+      gchar* tmpbuf = NULL;
+      gchar* last = g_slist_last(header_slist)->data;
+      if( !last ) {
+        continue;
+      }
+      tmpbuf = g_strconcat(last, text+1, NULL);
+      g_free(last);
+      g_slist_last(header_slist)->data = tmpbuf;
+      continue;
+    }
+
+    header_slist = g_slist_append(header_slist, g_strdup(text));
+  }
+
+  return header_slist;
+}
+
+/* Get body from mail or mpart
+ * 
+ *  Returned value is newly allocated.
+ */
+GSList*
+get_body(GSList* msg_slist) {
+  guint i = 0;
+  gchar* text = NULL;
+  GSList* body_slist = NULL;
+  
+  for(i=0;i<g_slist_length(msg_slist);i++) {
+    text = g_slist_nth_data(msg_slist, i);
+
+    if( *text == '\0' )
+      break;
+  }
+
+  if( !text || *text != '\0' )
+    return NULL;
+
+  for(;i<g_slist_length(msg_slist);i++) {
+    text = g_slist_nth_data(msg_slist, i);
+    body_slist = g_slist_append(body_slist, g_strdup(text));
+  }
+
+  return body_slist;
+}
 
 /* Decode quoted-printable message */
 gchar*
@@ -400,7 +575,7 @@ print_multi_part(MultiPart* mpart) {
   GSList* result_slist = NULL;
 
   if( !mpart )
-    return;
+    return NULL;
 
   if( mpart->filename )
     name = mpart->filename;
@@ -416,11 +591,11 @@ print_multi_part(MultiPart* mpart) {
     if( mpart->mimetype
       && (!strcmp(mpart->mimetype, "text/plain")
       ||  !strcmp(mpart->mimetype, "text/x-patch")) ) {
-      result_slist = g_slist_append(result_slist, g_strdup_printf("[Inline Attachment: %s %s]", name, mimetype));
+      result_slist = g_slist_append(result_slist, g_strdup_printf(_("[Inline Attachment: %s %s]"), name, mimetype));
     } else if( mpart->mimetype && !strcmp(mpart->mimetype, "application/pgp-signature") ) {
       /* Do Nothing */
     } else {
-      result_slist = g_slist_append(result_slist, g_strdup_printf("[Attachment: %s %s]", name, mimetype));
+      result_slist = g_slist_append(result_slist, g_strdup_printf(_("[Attachment: %s %s]"), name, mimetype));
     }
   }
 
@@ -487,7 +662,6 @@ multi_part_new(GSList* mpart_slist) {
   guint i = 0;
   gchar* tmpbuf = NULL;
   gchar* lastdata = NULL;
-  GSList* header_slist = NULL;
 
   for(i=0;i<g_slist_length(mpart_slist);i++) {
     gchar* text = g_slist_nth_data(mpart_slist, i);
@@ -512,104 +686,32 @@ multi_part_new(GSList* mpart_slist) {
   }
 
   /* Some directives */
-#define TRANSFER_ENCODING "Content-Transfer-Encoding: "
-#define CONTENT_TYPE "Content-Type: "
-#define CONTENT_DISPOSITION "Content-Disposition: "
+#define HDR_CTE "Content-Transfer-Encoding"
+#define HDR_CT  "Content-Type"
+#define HDR_CD  "Content-Disposition"
 
   /* Parse Header */
-  header_slist = result->header_slist;
-  for(i=0;i<g_slist_length(header_slist);i++) {
-    gchar* text = g_slist_nth_data(header_slist, i);
-    if( !g_ascii_strncasecmp(text, TRANSFER_ENCODING, strlen(TRANSFER_ENCODING) ) ) {
-      text += strlen(TRANSFER_ENCODING);
-      if( !g_ascii_strncasecmp(text, "base64", strlen("base64")) ) {
-        result->is_base64 = TRUE;
-        continue;
-      }
-      if( !g_ascii_strncasecmp(text, "quoted-printable", strlen("quoted-printable")) ) {
-        result->is_qp = TRUE;
-      }
-      continue; /* Go to the next header */
-    }
-    if( !g_ascii_strncasecmp(text, CONTENT_TYPE, strlen(CONTENT_TYPE)) ) {
-      text += strlen(CONTENT_TYPE);
-      /* Get the mimetype */
-      tmpbuf = strchr(text, ';');
-      if( tmpbuf ) {
-        result->mimetype = g_strndup(text, tmpbuf - text);
-      } else {
-        result->mimetype = g_strdup(text);
-        continue; /* No need to parse more */
-      }
-      /* Get its name */
-      tmpbuf = strstr(text, "name=");
-      if( tmpbuf ) {
-        gchar* semicolon = NULL;
-        gchar* dquote = NULL;
-        tmpbuf += strlen("name=");
-        if( *tmpbuf == '"' )
-          tmpbuf++;
-        semicolon = strchr(tmpbuf, ';');
-        dquote = strchr(tmpbuf, '"');
-        if( !semicolon && !dquote ) {
-          result->name = g_strdup(tmpbuf);
-          continue; /* No more property */
-        } else if ( semicolon && dquote ) {
-          result->name = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
-        } else if( semicolon ) {
-          result->name = g_strndup(tmpbuf, semicolon-tmpbuf);
-        } else if( dquote ) {
-          result->name = g_strndup(tmpbuf, dquote-tmpbuf);
-        }
-      }
-      /* Get its charset */
-      tmpbuf = strstr(text, "charset=");
-      if( tmpbuf ) {
-        gchar* semicolon = NULL;
-        gchar* dquote = NULL;
-        tmpbuf += strlen("charset=");
-        if( *tmpbuf == '"' )
-          tmpbuf++;
-        semicolon = strchr(tmpbuf, ';');
-        dquote = strchr(tmpbuf, '"');
-        if( !semicolon && !dquote ) {
-          result->charset = g_strdup(tmpbuf);
-          continue; /* No more property */
-        } else if ( semicolon && dquote ) {
-          result->charset = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
-        } else if( semicolon ) {
-          result->charset = g_strndup(tmpbuf, semicolon-tmpbuf);
-        } else if( dquote ) {
-          result->charset = g_strndup(tmpbuf, dquote-tmpbuf);
-        }
-      }
-      continue; /* Go to the next header */
-    }
-    if( !g_ascii_strncasecmp(text, CONTENT_DISPOSITION, strlen(CONTENT_DISPOSITION)) ) {
-      text += strlen(CONTENT_DISPOSITION);
-      /* Get its filename */
-      tmpbuf = strstr(text, "filename=");
-      if( tmpbuf ) {
-        gchar* semicolon = NULL;
-        gchar* dquote = NULL;
-        tmpbuf += strlen("filename=");
-        if( *tmpbuf == '"' )
-          tmpbuf++;
-        semicolon = strchr(tmpbuf, ';');
-        dquote = strchr(tmpbuf, '"');
-        if( !semicolon && !dquote ) {
-          result->filename = g_strdup(tmpbuf);
-          continue; /* No more property */
-        } else if ( semicolon && dquote ) {
-          result->filename = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
-        } else if( semicolon ) {
-          result->filename = g_strndup(tmpbuf, semicolon-tmpbuf);
-        } else if( dquote ) {
-          result->filename = g_strndup(tmpbuf, dquote-tmpbuf);
-        }
-      }
-      continue; /* Go to the next header */
-    }
+  tmpbuf = (gchar*)get_a_header(result->header_slist, HDR_CTE);
+  if( tmpbuf && !g_ascii_strncasecmp(tmpbuf+strlen(HDR_CTE)+2,
+    "base64", strlen("base64"))) {
+    result->is_base64 = TRUE;
+  }
+  if( tmpbuf && !g_ascii_strncasecmp(tmpbuf+strlen(HDR_CTE)+2,
+     "quoted-printable", strlen("quoted-printable"))) {
+     result->is_qp = TRUE;
+  }
+  result->mimetype = get_mimetype(result->header_slist);
+  result->name = get_header_property(result->header_slist, HDR_CT, "name");
+  result->charset = get_header_property(result->header_slist, HDR_CT, "charset");
+  result->multipart_boundary = get_header_property(result->header_slist, HDR_CT, "boundary");
+  result->filename = get_header_property(result->header_slist, HDR_CD, "filename");
+
+  /* Recurse multipart */
+  if( result->multipart_boundary ) {
+    GSList* newbody_slist = parse_multipart(result->body_slist, result->multipart_boundary);
+    g_slist_free(result->body_slist);
+    result->body_slist = newbody_slist;
+    return result;
   }
 
   /* Base64 decode */
@@ -886,4 +988,166 @@ cut_headers(GSList* mail_slist)
 #endif
 
   return new_slist;
+}
+
+void
+mail_shape_header(Mail* mail) {
+  guint i = 0;
+  GSList* header_slist = NULL;
+  const gchar* text = NULL;
+  gboolean is_visible = FALSE;
+  gchar* tmpbuf = NULL;
+  guint j = 0;
+
+  if( !mail )
+    return;
+
+  for(i=0;i<g_slist_length(mail->mail_slist);i++) {
+    text = g_slist_nth_data(mail->mail_slist, i);
+
+    if( *text == '\0' )
+      break; /* Header end */
+
+    if( header_slist && is_visible && (*text == ' ' || *text == '\t') ) {
+      gchar* last = g_slist_last(header_slist)->data;
+      if( !last ) {
+        continue;
+      }
+      tmpbuf = g_strconcat(last, text+1, NULL);
+      g_free(last);
+      g_slist_last(header_slist)->data = tmpbuf;
+      continue;
+    }
+
+    j = 0;
+    is_visible = FALSE;
+    while(worthy_headers[j] != NULL) {
+      if( !g_ascii_strncasecmp(text, worthy_headers[j], strlen(worthy_headers[j])) && !strncmp(text + strlen(worthy_headers[j]), ": ", 2) ) {
+        is_visible = TRUE;
+        break;
+      }
+      j++;
+    }
+
+    if( is_visible && mail->subject
+        && !g_ascii_strncasecmp(text, "Subject: ", strlen("Subject: ")) ) {
+      gchar* header_subject = g_strndup(text, strlen("Subject: "));
+      header_slist = g_slist_append(header_slist, g_strconcat(header_subject, mail->subject, NULL));
+      g_free(header_subject);
+      is_visible = FALSE;
+      continue;
+    }
+    if( is_visible && mail->from
+        && !g_ascii_strncasecmp(text, "From: ", strlen("From: ")) ) {
+      gchar* header_from = g_strndup(text, strlen("From: "));
+      header_slist = g_slist_append(header_slist, g_strconcat(header_from, mail->from, NULL));
+      g_free(header_from);
+      is_visible = FALSE;
+      continue;
+    }
+
+    if( is_visible ) {
+      header_slist = g_slist_append(header_slist, g_strdup(text));
+    }
+  }
+
+  g_slist_free(mail->header_slist);
+  mail->header_slist = header_slist;
+}
+
+Mail*
+mail_new(GSList* mail_slist) {
+  Mail* result = g_new0(Mail, 1);
+  gchar* tmpbuf = NULL;
+
+  result->mail_slist = mail_slist;
+  result->header_slist = get_headers(mail_slist);
+  result->body_slist = get_body(mail_slist);
+
+  /* Parse Subject */
+  tmpbuf = (gchar*)get_a_header(result->header_slist, "Subject");
+  if( tmpbuf ) {
+    result->subject = base64_decode(tmpbuf + strlen("Subject: "));
+  }
+
+  /* Parse From */
+  tmpbuf = (gchar*)get_a_header(result->header_slist, "From");
+  if( tmpbuf ) {
+    result->from = base64_decode(tmpbuf + strlen("From: "));
+  }
+
+  /* Charset */
+  result->charset = (gchar*)get_header_property(result->header_slist, "Content-Type", "charset");
+
+  /* Parse mimetype */
+  result->mimetype = (gchar*)get_mimetype(result->header_slist);
+
+  /* If no charset, u2ps handle it as iso-2022-jp for 7bit mail,
+   * so for multipart, it should be us-ascii.
+   * Otherwise, it will convert in earlier stage.
+   */
+  if( !result->charset && result->mimetype
+      && strstr(result->mimetype, "multipart") ) {
+    result->charset = g_strdup("us-ascii");
+  }
+
+  /* Parse Multipart */
+  result->multipart_boundary = (gchar*)get_header_property(result->header_slist, "Content-Type", "boundary");
+  if( result->multipart_boundary ) {
+    GSList* new_slist = parse_multipart(result->body_slist, result->multipart_boundary);
+    g_slist_free(result->body_slist);
+    result->body_slist = new_slist;
+  }
+
+  return result;
+}
+
+void
+dump_mail(Mail* mail) {
+  guint i = 0;
+
+  if( !mail ) {
+    g_print("mail is NULL\n");
+    return;
+  }
+
+  for(i=0;i<g_slist_length(mail->header_slist);i++) {
+    gchar* text = g_slist_nth_data(mail->header_slist, i);
+    g_print("HEADER: %s\n", text);
+  }
+
+  /* Body part dump is very verbose */
+
+  g_print("FROM: %s\n", mail->from);
+  g_print("SUBJECT: %s\n", mail->subject);
+  g_print("MIMETYPE: %s\n", mail->mimetype);
+  g_print("IS_BASE64: %s\n", mail->is_base64 ? "TRUE": "FALSE");
+  g_print("IS_QP: %s\n", mail->is_qp ? "TRUE" : "FALSE");
+  g_print("MULTIPART_BOUNDARY: %s\n", mail->multipart_boundary );
+
+  /* mail->multipart_slist dump here */
+}
+
+void
+mail_free(Mail* mail) {
+  guint i = 0;
+
+  if( !mail )
+    return;
+
+  g_slist_free(mail->header_slist);
+  g_slist_free(mail->body_slist);
+
+  g_free(mail->from);
+  g_free(mail->subject);
+  g_free(mail->mimetype);
+  g_free(mail->charset);
+
+  for(i=0;i<g_slist_length(mail->multipart_slist);i++) {
+    MultiPart* mpart = g_slist_nth_data(mail->multipart_slist, i);
+    multi_part_free(mpart);
+    g_slist_nth(mail->multipart_slist, i)->data = NULL;
+  }
+  g_slist_free(mail->multipart_slist);
+  g_free(mail);
 }

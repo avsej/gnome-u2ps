@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-14 19:06+0900\n"
+"POT-Creation-Date: 2004-04-25 16:38+0900\n"
 "PO-Revision-Date: 2004-03-21 23:00+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -61,27 +61,39 @@ msgid "%s version is %s\n"
 msgstr "%s: バージョン %s\n"
 
 #. Header Page
-#: src/main.c:518
+#: src/main.c:533
 #, c-format
 msgid "Page %d/%d"
 msgstr "ページ %d/%d"
 
-#: src/main.c:560
+#: src/main.c:575
 msgid "%B %e %Y %H:%M"
 msgstr "%B%e日 %H:%M"
 
-#: src/main.c:628
+#: src/main.c:643
 msgid "Input and output file is same.\n"
 msgstr "入力と出力のファイルが同一です。\n"
 
-#: src/main.c:636
+#: src/main.c:651
 #, c-format
 msgid "File is not found: %s\n"
 msgstr "ファイルが見つかりません: %s\n"
 
-#: src/main.c:846
+#: src/main.c:964
 msgid "File is not valid UTF-8\n"
 msgstr "ファイルが正しいUTF-8ではありません\n"
 
-#~ msgid "Falling back to UTF-8\n"
-#~ msgstr "UTF-8にフォールバックします\n"
+#: src/mail.c:72
+#, c-format
+msgid "Header handling is broken: %s\n"
+msgstr "ヘッダーの扱いで壊れています: %s\n"
+
+#: src/mail.c:533
+#, c-format
+msgid "[Inline Attachment: %s %s]"
+msgstr "[インライン添付: %s %s]"
+
+#: src/mail.c:537
+#, c-format
+msgid "[Attachment: %s %s]"
+msgstr "[添付ファイル: %s %s]"

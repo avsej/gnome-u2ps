@@ -25,6 +25,21 @@
 
 #include <glib.h>
 
+typedef struct _Mail {
+  GSList* mail_slist; /* Original Mail */
+  GSList* header_slist;
+  GSList* body_slist;
+
+  gchar* from;
+  gchar* subject;
+  gchar* mimetype;
+  gchar* charset;
+  gboolean is_base64;
+  gboolean is_qp;
+  gchar* multipart_boundary;
+  GSList* multipart_slist;
+} Mail;
+
 typedef struct _MultiPart {
   GSList* header_slist;
   GSList* body_slist;
@@ -32,15 +47,26 @@ typedef struct _MultiPart {
   gchar* mimetype;
   gchar* charset;
   gchar* name; /* Name property in 'Content-Type:' header line */
-  gchar* filename; /* Filename property in 'Content-Disposition: ' header line */
+  gchar* filename; /* Filename property in 'Content-Disposition: ' header */
   gboolean is_base64;
   gboolean is_qp; /* Quoted Printable Format */
+  gchar* multipart_boundary;
+  GSList* multipart_slist;
 } MultiPart;
+
+/* Generic Mail func */
+Mail* mail_new(GSList* mail_slist);
+void dump_mail(Mail* mail);
+void mail_free(Mail* mail);
+void mail_shape_header(Mail* mail);
 
 /* Multipart funcs */
 GSList* parse_multipart(GSList* body_slist, gchar* multipart_boundary);
 
 /* Mail handling funcs */
+gchar* get_mimetype(GSList* header_slist);
+GSList* get_headers(GSList* mail_slist);
+GSList* get_body(GSList* mail_slist);
 gchar* get_charset(GSList* mail_slist);
 gchar* get_subject(GSList* mail_slist);
 GSList* cut_headers(GSList* mail_slist);
