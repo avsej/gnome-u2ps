@@ -1,3 +1,10 @@
+2004-05-04  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* configure.in: Improve bz2 detection.
+	* src/main.c: 2 byte magic for gzip in stdin
+	* src/main.c: Add bz2 support code.
+	* src/main.c: Fix codes for long line concatenate at file read.
+
 2004-05-03  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* configure.in: Add iso-2022-jp-2004 detection.

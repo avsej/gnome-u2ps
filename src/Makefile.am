@@ -8,7 +8,8 @@ INCLUDES = \
 bin_PROGRAMS = u2ps
 
 u2ps_LDADD = \
-	$(U2PS_LIBS)
+	$(U2PS_LIBS) \
+	$(BZ2_LIBS)
 
 u2ps_SOURCES = \
 	fribidi.c \

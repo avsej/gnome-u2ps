@@ -38,6 +38,8 @@ AC_CHECK_LIB(bz2, BZ2_bzopen, [found_bz2=yes])
 if test $found_bz2 = "no"; then
   AC_MSG_ERROR([*** No correct bz2 library in your system ***])
 fi
+BZ2_LIBS="-lbz2"
+AC_SUBST(BZ2_LIBS)
 
 
 iconv_test=no
@@ -127,7 +129,6 @@ fribidi			>= 0.10.4
 "
 
 PKG_CHECK_MODULES(U2PS, $u2ps_reqs)
-U2PS_LIBS="$U2PS_LIBS -lbz2"
 AC_SUBST(U2PS_CFLAGS)
 AC_SUBST(U2PS_LIBS)
 

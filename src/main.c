@@ -656,23 +656,56 @@ int main(int argc, char** argv) {
   }
 
   memset(buf, 0, sizeof(buf));
-  fgets(buf, 5, fp);
+  fgets(buf, 4, fp);
 
   /* Support bzip2 file for input */
   if( !strncmp(buf, "BZh", 3) ) {
-   fclose(fp);
-   BZFILE* bzfp = BZ2_bzopen(filename, "r");
-   while(BZ2_bzread(bzfp, buf, sizeof(buf)) > 0 ) {
-     g_print("%s", buf);
-     memset(buf, 0, sizeof(buf));
-   }
-   BZ2_bzclose(bzfp);
-   fflush(stdout);
-exit(0);
+    int bzerror = 0;
+    BZFILE* bzfp = NULL;
+
+    fseek(fp, 0, SEEK_SET);
+    bzfp = BZ2_bzReadOpen(&bzerror, fp, 0, 0, (void*)NULL, 0);
+    memset(buf, 0, sizeof(buf));
+    text_slist = NULL;
+    while(BZ2_bzRead(&bzerror, bzfp, buf, sizeof(buf))> 0 ) {
+      text_slist = g_slist_append(text_slist, g_strndup(buf, sizeof(buf)));
+      memset(buf, 0, sizeof(buf));
+    }
+    BZ2_bzReadClose(&bzerror, bzfp);
+    fclose(fp);
+
+    /* Cut the line at newline */
+    new_slist = NULL;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* text = g_slist_nth_data(text_slist, i);
+      if( strchr(text, '\n') == NULL ) {
+        new_slist = g_slist_append(new_slist, g_strdup(text));
+        continue;
+      } else if( strlen(strchr(text, '\n')) == 1 ) {
+        new_slist = g_slist_append(new_slist, g_strdup(text));
+        continue;
+      } else {
+        gchar* last = NULL;
+        gchar **cursorpp, **strpp;
+        cursorpp = strpp = g_strsplit(text, "\n", -1);
+        while( *cursorpp != NULL ) {
+          new_slist = g_slist_append(new_slist, g_strconcat(*cursorpp, "\n", NULL));
+          cursorpp++;
+        }
+        last = g_slist_last(new_slist)->data;
+        last[strlen(last)-1] = '\0';
+        g_strfreev(strpp);
+        continue;
+      }
+    }
+    g_slist_free(text_slist);
+    text_slist = new_slist;
+
+
   }
 
   /* Support gzip file for input */
-  else if( !strcmp(buf, "\x1f\x8b") ) {
+  else if( !strncmp(buf, "\x1f\x8b", 2) ) {
     if( fp != stdin ) {
       gzFile gzfp = NULL;
       fclose(fp);
@@ -693,8 +726,8 @@ exit(0);
       FILE* outfp = NULL;
       gzFile gzfp = NULL;
 
-      memcpy(memdat, "\x1f\x8b\x08\x08", 4);
-      current_size = 4;
+      memcpy(memdat, buf, 3);
+      current_size = 3;
       while( (size = fread(buf, sizeof(char), sizeof(buf), fp)) > 0 ) {
         if( current_size + size > memsize ) {
           memsize += 4096;
@@ -764,20 +797,21 @@ exit(0);
   }
 
   /* Concatenate long line */
+  new_slist = NULL;
   for(i=0;i<g_slist_length(text_slist);i++) {
-    gchar* tmpbuf = g_slist_nth_data(text_slist, i);
-
-    if( strlen(tmpbuf) <= 0 )
+    gchar* text = g_slist_nth_data(text_slist, i);
+    gchar* last = (new_slist != NULL) ? g_slist_last(new_slist)->data : NULL;
+    g_assert(strlen(text) >= 0);
+    if( strlen(text) == 0 ) {
       continue;
-
-    if( tmpbuf[strlen(tmpbuf)-1] != '\n' ) {
-      while(++i<g_slist_length(text_slist)) {
-        tmpbuf = g_strconcat(tmpbuf, g_slist_nth_data(text_slist, i), NULL);
-        if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
-          break; 
-      }
     }
-    new_slist = g_slist_append(new_slist, tmpbuf);
+    if ( last && last[strlen(last)-1] != '\n' ) {
+      gchar* tmpbuf = g_strconcat(last, text, NULL);
+      g_free(last);
+      g_slist_last(new_slist)->data = tmpbuf;
+    } else {
+      new_slist = g_slist_append(new_slist, g_strdup(text));
+    }
   }
   g_slist_free(text_slist);
   text_slist = new_slist;
@@ -792,6 +826,7 @@ exit(0);
       tmpbuf[strlen(tmpbuf)-1] = '\0';
   }
 
+  /* Get charset from mail */
   if( !input_encoding && parse_mail ) {
     input_encoding = get_charset(text_slist);
   }

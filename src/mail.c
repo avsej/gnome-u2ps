@@ -728,6 +728,7 @@ multi_part_new(GSList* mpart_slist) {
       break;
 
     if( *text == ' ' || *text == '\t' ) {
+      g_assert(result->header_slist != NULL);
       lastdata = g_slist_last(result->header_slist)->data;
       tmpbuf = g_strconcat(lastdata, text+1, NULL);
       g_free(lastdata);
