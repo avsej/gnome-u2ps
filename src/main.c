@@ -726,6 +726,17 @@ int main(int argc, char** argv) {
   }
 
   /* Japanese codeset auto detection - iso-2022-jp */
+  /* ISO-2022-JP bytes sequence:
+     ISO/IEC 646 IRV(e.g. ASCII) 1b 28 42 "ESC ( B"
+     Japanese                    1b 24 42 "ESC $ B"
+     JISX0213 1st area           1b 24 28 51 "ESC $ ( Q"
+     JISX0213 2nd area           1b 24 28 50 "ESC $ ( P"
+
+     ISO-2022-JP has some variations
+     ISO-2022-JP, ISO-2022-JP-2, ISO-2022-JP-3, ISO-2022-JP-2004
+
+     http://www.asahi-net.or.jp/~wq6k-yn/notes.html (Japanese)
+   */
   /* Just check the 8th bit for simplify */
   if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
     gboolean is_2022jp = TRUE;
