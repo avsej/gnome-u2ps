@@ -657,14 +657,87 @@ int main(int argc, char** argv) {
   /* Support gzip file for input */
   memset(buf, 0, sizeof(buf));
   fgets(buf, 5, fp);
-  if( fp != stdin && !strcmp(buf, "\x1f\x8b\x08\x08") ) {
-    gzFile gzfp = NULL;
-    fclose(fp);
-    gzfp = gzopen(filename, "r");
-    while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
-      text_slist = g_slist_append(text_slist, g_strdup(buf));
+  if( !strcmp(buf, "\x1f\x8b\x08\x08") ) {
+    if( fp != stdin ) {
+      gzFile gzfp = NULL;
+      fclose(fp);
+      gzfp = gzopen(filename, "r");
+      while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
+        text_slist = g_slist_append(text_slist, g_strdup(buf));
+      }
+      gzclose(gzfp);
+    } else {
+      size_t memsize = 4096;
+      size_t current_size = 0;
+      size_t size = 0;
+      char* memdat = calloc(memsize, sizeof(char));
+      pid_t uid = 0;
+      mode_t premode = 0;
+      gchar* tmpname = NULL;
+      FILE* outfp = NULL;
+      gzFile gzfp = NULL;
+
+      memcpy(memdat, "\x1f\x8b\x08\x08", 4);
+      current_size = 4;
+      while( (size = fread(buf, sizeof(char), sizeof(buf), fp)) > 0 ) {
+        if( current_size + size > memsize ) {
+          memsize += 4096;
+          memdat = realloc(memdat, memsize);
+        }
+        memcpy(memdat+current_size, buf, size);
+        current_size += size;
+      }
+
+      /* Just to get unique number.
+       *
+       * Linux's /dev/random is not on other platform.
+       */
+      uid = fork();
+
+      if( uid == 0 ) {
+        exit(0);
+      } else {
+        int status;
+        wait(&status);
+      }
+
+      premode = umask(0077);
+      tmpname = g_strdup_printf("/tmp/gnome-u2ps-%d.gz", uid);
+      outfp = fopen(tmpname, "w");
+      fwrite(memdat, sizeof(char), current_size, outfp);
+      fclose(outfp);
+      free(memdat);
+      umask(premode);
+
+      gzfp = gzopen(tmpname, "r");
+      while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
+        text_slist = g_slist_append(text_slist, g_strdup(buf));
+      }
+      gzclose(gzfp);
+
+      if( unlink(tmpname) != 0 ) {
+        g_warning("Unlink the temporary file %s failed.\n");
+      }
+      g_free(tmpname);
+
+/* zlib's uncompress() doesn't work for me */
+#if 0
+      memdat = realloc(memdat, current_size);
+      uLongf destlen = current_size;
+      char* outmem = calloc(current_size, sizeof(char));
+      int ret = uncompress(outmem, &destlen , (const unsigned char*)memdat, (uLong)current_size);
+      if( ret == Z_MEM_ERROR )
+        g_print("Z_MEM_ERROR\n");
+      else if( ret == Z_DATA_ERROR )
+        g_print("Z_DATA_ERROR\n");
+      else if( ret == Z_BUF_ERROR )
+        g_print("Z_BUF_ERROR\n");
+      else if( ret == Z_OK )
+        g_print("Z_OK\n");
+      g_print("destlen: %d\n", destlen);
+      free(memdat);
+#endif
     }
-    gzclose(gzfp);
   } else {
     fseek(fp, 0, SEEK_SET);
     while(fgets(buf, sizeof(buf), fp) > 0 ) {
