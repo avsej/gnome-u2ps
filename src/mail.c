@@ -123,12 +123,12 @@ get_mimetype(GSList* header_slist) {
   header += strlen("Content-Type") + 2; /* Add extra strlen(": ") */
   cursor = strchr(header, ';');
   if( cursor ) {
-    return g_strndup(header, cursor - header);
+    return g_ascii_strdown(header, cursor - header);
   } else {
-    return g_strdup(header);
+    return g_ascii_strdown(header, -1);
   }
   
-  return NULL;
+  return NULL; /* Never reach here */
 }
 
 /* Get Header Property
