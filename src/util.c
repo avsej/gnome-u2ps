@@ -28,6 +28,11 @@ typedef struct _iso2022jp_pair {
   gunichar to;
 } iso2022jp_pair;
 
+/* ISO-2022-JP <-> UCS2 supplimentary code table
+ *
+ * Most are assumed to be glibc code mapping failure (but fixable)
+ * 'NOT WORK' means gs/libgnomeprint have the fault besides glibc
+ */
 static iso2022jp_pair iso2022jp_table[] = {
   { "\x2d\x21", 0x2460 }, /* CIRCLED DIGIT 1 */
   { "\x2d\x22", 0x2461 }, /* CIRCLED DIGIT 2 */
