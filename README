@@ -1,0 +1,13 @@
+gnome-u2ps - Unicode text to PostScript
+
+  Gnome u2ps is a Unicode(UTF-8) text converter to a2ps style PostScript.
+  GNU a2ps never takes any effort to support Asian languages and Unicode.
+  U2ps provides a modern, code-reusable replacement of a2ps.
+
+DEPENDENTS
+----------
+libgnomeprint-2.2
+
+AUTHOR
+------
+Yukihiro Nakai <ynakai@redhat.com>, <nakai@gnome.gr.jp>

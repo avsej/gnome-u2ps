@@ -1,0 +1,37 @@
+# u2ps ja.po
+# Copyright (C) 2004 Yukihiro Nakai
+# This file is distributed under the same license as the u2ps package.
+# Yukihiro Nakai <nakai@gnome.gr.jp>, 2004.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: u2ps 0.0\n"
+"POT-Creation-Date: 2004-03-22 14:01+0900\n"
+"PO-Revision-Date: 2004-03-21 23:00+0900\n"
+"Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
+"Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/main.c:143
+#, c-format
+msgid "%d/%d Pages"
+msgstr "%d/%d ページ"
+
+#: src/main.c:154
+msgid "%B %e %Y %H:%M"
+msgstr "%B%e日 %H:%M"
+
+#: src/main.c:200
+#, c-format
+msgid "%s version is %s\n"
+msgstr "%s: バージョン %s\n"
+
+#: src/main.c:228
+msgid "File is not found.\n"
+msgstr "ファイルが見つかりません。\n"
+
+#: src/main.c:301
+msgid "Test Title"
+msgstr "テストタイトル"
