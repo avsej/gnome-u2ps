@@ -97,6 +97,8 @@ get_mimetype(GSList* header_slist) {
   cursor = strchr(header, ';');
   if( cursor ) {
     return g_strndup(header, cursor - header);
+  } else {
+    return g_strdup(header);
   }
   
   return NULL;
@@ -317,6 +319,41 @@ decode_qp_message(GSList* text_slist) {
   }
 
   return new_slist;
+}
+
+static guchar*
+base64_decode_simple(guchar* str) {
+  const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  guchar* result = NULL;
+  guchar* cursor = NULL;
+  guchar* cursor2 = NULL;
+  if(strlen(str) % 4 != 0 ) {
+    g_warning("Cannot decode base64");
+    return g_strdup(str);
+  }
+
+  cursor2 = result = g_new0(guchar, strlen(str)+ 1);
+  cursor = str;
+
+  while( *cursor != '\0' ) {
+    guchar c = 0;
+
+    c = strchr(base64, cursor[0])-base64;
+    cursor2[0] = c<<2;
+    c = strchr(base64, cursor[1])-base64;
+    cursor2[0] |= c>>4;
+    cursor2[1]  = c<<4;
+    c = (cursor[2] != '=') ? strchr(base64, cursor[2])-base64 : 0;
+    cursor2[1] |= c>>2;
+    cursor2[2]  = c<<6;
+    c = (cursor[3] != '=') ? strchr(base64, cursor[3])-base64 : 0;
+    cursor2[2] |= c;
+
+    cursor2 += 3;
+    cursor += 4;
+  }
+
+  return result;
 }
 
 /* Returns UTF-8 str */
@@ -835,7 +872,7 @@ parse_multipart(GSList* body_slist, gchar* multipart_boundary) {
     if( multipart_boundary && strstr(text, multipart_boundary) ) {
       if( mpart_slist ) {
         MultiPart* mpart = multi_part_new(mpart_slist);
-//        dump_multi_part(mpart);
+        //dump_multi_part(mpart);
         result_slist = g_slist_concat(result_slist, print_multi_part(mpart));
         g_slist_free(mpart_slist);
         mpart_slist = NULL;
@@ -1076,6 +1113,18 @@ mail_new(GSList* mail_slist) {
     result->from = base64_decode(tmpbuf + strlen("From: "));
   }
 
+  /* QP check */
+  tmpbuf = (gchar*)get_a_header(result->header_slist, "Content-Transfer-Encoding");
+  if( tmpbuf ) {
+    tmpbuf += strlen("Content-Transfer-Encoding")+2;
+    if( !strncmp(tmpbuf, "quoted-printable", strlen("quoted-printable")) ) {
+      result->is_qp = TRUE;
+    }
+    if( !strncmp(tmpbuf, "base64", strlen("base64")) ) {
+      result->is_base64 = TRUE;
+    }
+  }
+
   /* Charset */
   result->charset = (gchar*)get_header_property(result->header_slist, "Content-Type", "charset");
 
@@ -1089,6 +1138,61 @@ mail_new(GSList* mail_slist) {
   if( !result->charset && result->mimetype
       && strstr(result->mimetype, "multipart") ) {
     result->charset = g_strdup("us-ascii");
+  }
+
+  /* Decode base64 body */
+  if( result->is_base64 ) {
+    guint i = 0;
+    gchar* total = NULL;
+    GSList* body_slist = NULL;
+    gchar** strpp = NULL;
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* newtext = base64_decode_simple(text);
+      gchar* tmpbuf = total;
+      if( !total ) {
+        total = g_strdup(newtext);
+      } else {
+        total = g_strconcat(tmpbuf, newtext, NULL);
+      }
+      g_free(newtext);
+      g_free(tmpbuf);
+    }
+
+    strpp = g_strsplit(total, "\n", -1);
+    for(i=0;strpp[i] != NULL;i++) {
+      body_slist = g_slist_append(body_slist, g_strdup(strpp[i]));
+    }
+    g_strfreev(strpp);
+    g_free(total);
+    
+    g_slist_free(result->body_slist);
+    result->body_slist = body_slist;
+  }
+  /* Decode quoted-printing body */
+  if( result->is_qp ) {
+    guint i = 0;
+    GSList* body_slist = NULL;
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* newtext = decode_quoted_printable(text);
+      body_slist = g_slist_append(body_slist, newtext);
+    }
+    g_slist_free(result->body_slist);
+    result->body_slist = body_slist;
+  }
+
+  /* Convert body to UTF-8 */
+  if( result->charset && (!result->mimetype || !strstr(result->mimetype, "multipart")) ) {
+    guint i = 0;
+    GSList* utf8_slist = NULL;
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* utf8 = u2ps_convert(text, result->charset);
+      utf8_slist = g_slist_append(utf8_slist, utf8);
+    }
+    g_slist_free(result->body_slist);
+    result->body_slist = utf8_slist;
   }
 
   /* Parse Multipart */

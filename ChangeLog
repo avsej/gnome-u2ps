@@ -2,6 +2,7 @@
 
 	* Use Mail struct and refactoring.
 	* Fix hyphenation logic.
+	* Fix bugs
 
 2004-04-25  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

@@ -816,7 +816,7 @@ int main(int argc, char** argv) {
   }
 
   /* Encoding option */
-  if( input_encoding ) {
+  if( !parse_mail && input_encoding ) {
     GSList* convtext_slist = NULL;
 
     for(i=0;i<g_slist_length(text_slist);i++) {
