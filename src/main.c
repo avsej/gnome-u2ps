@@ -615,6 +615,11 @@ int main(int argc, char** argv) {
 
   locale = setlocale(LC_ALL, "");
 
+  /* Just a workaround for
+     https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=126714
+   */
+  locale = g_strdup(locale);
+
 #ifdef ENABLE_NLS
   bindtextdomain(PACKAGE, U2PS_LOCALEDIR);
   bind_textdomain_codeset(PACKAGE, "UTF-8");
