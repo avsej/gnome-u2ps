@@ -286,6 +286,47 @@ g_utf8_strndup(gchar* utf8text, gint n)
   return result;
 }
 
+/* get_unbreakable() returns the unbreakable boolean in char position.
+   The idea is very simple and similar to Pango's.
+   The input string should valid UTF-8.
+   The input string should not have newline char.
+*/
+gboolean*
+get_unbreakable(gchar* text) {
+  gboolean* unbreakable = NULL;
+  gboolean* breakable = NULL;
+  gint i;
+
+  g_return_val_if_fail(text != NULL, NULL);
+
+  /* Check breakable first for European languages */
+  breakable = g_new0(gboolean, g_utf8_strlen(text, -1)+1);
+
+  for(i=0;i<g_utf8_strlen(text, -1);i++) {
+    gunichar c = g_utf8_get_char(g_utf8_offset_to_pointer(text, i));
+    switch(c) {
+      case ' ':
+      case '\t':
+      case ',':
+      case '.':
+      case '-':
+        breakable[i] = TRUE;
+        breakable[i+1] = TRUE;
+      break;
+    default:
+      break;
+    }
+  }
+
+  /* Check unbreakable */
+  unbreakable = g_new0(gboolean, g_utf8_strlen(text, -1)+1);
+  for(i=0;i<g_utf8_strlen(text, -1);i++) {
+    unbreakable[i] = !breakable[i]; /* Set default */
+  }
+
+  return unbreakable;
+}
+
 GSList*
 enable_hyphenation(GSList* text_slist, GnomeFont* font, gdouble maxw)
 {
@@ -302,13 +343,27 @@ enable_hyphenation(GSList* text_slist, GnomeFont* font, gdouble maxw)
       gchar* cursor = text;
       while(gnome_font_get_width_utf8(font, cursor) > maxw) {
         gint j;
+
         for(j=1;j<=g_utf8_strlen(cursor, -1);j++) {
           gchar* newtext = g_utf8_strndup(cursor, j);
           gdouble newtextw = gnome_font_get_width_utf8(font, newtext);
           g_free(newtext);
           if( newtextw > maxw ) {
+            gchar* newtext2;
+            gboolean* unbreakable;
             g_assert(j > 1);
-            gchar* newtext2 = g_utf8_strndup(cursor, j-1);
+            unbreakable = get_unbreakable(cursor);
+            if( unbreakable[j] ) {
+              gint k;
+              for(k=j;k>1;k--) {
+                if( unbreakable[k] == FALSE ) {
+                  j = k+1;
+                  break;
+                }
+              }
+              /* Do nothing when all is unbreakable */
+            }
+            newtext2 = g_utf8_strndup(cursor, j-1);
             new_slist = g_slist_append(new_slist, newtext2);
             cursor = g_utf8_offset_to_pointer(cursor, j-1);
             break;

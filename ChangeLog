@@ -1,9 +1,13 @@
+2004-04-04  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* src/main.c: Add English hyphenation.
+	* src/main.c: Header title clipping
+
 2004-04-03  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/mail.c: Add Q encoding support
 	* src/main.c: Fix to Cut charset property after ';'
 	* src/util.h, src/util.c: Add g_convert() wrapper.
-	* src/main.c: Header title clipping
 
 2004-04-02  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
