@@ -440,38 +440,38 @@ enable_hyphenation(GSList* text_slist, GnomeFont* font, gdouble maxw)
     if( textw > maxw ) {
       gchar* cursor = text;
       while(gnome_font_get_width_utf8(font, cursor) > maxw) {
-        gint j;
+        gint j = 0;
 
         for(j=1;j<=g_utf8_strlen(cursor, -1);j++) {
           gchar* newtext = g_utf8_strndup(cursor, j);
           gdouble newtextw = gnome_font_get_width_utf8(font, newtext);
           g_free(newtext);
           if( newtextw > maxw ) {
-            gchar* newtext2;
-            gboolean* unbreakable;
+            gchar* newtext2 = NULL;
+            gboolean* unbreakable = NULL;
             g_assert(j > 1);
             unbreakable = get_unbreakable(cursor);
             if( unbreakable[j] ) {
-              gint k;
+              gint k = 0;
               for(k=j;k>1;k--) {
                 if( unbreakable[k] == FALSE ) {
-                  j = k+1;
+                  j = k;
                   break;
                 }
               }
               /* Do nothing when all is unbreakable */
             }
             g_free(unbreakable);
-            newtext2 = g_utf8_strndup(cursor, j-1);
+            newtext2 = g_utf8_strndup(cursor, j);
             new_slist = g_slist_append(new_slist, newtext2);
-            cursor = g_utf8_offset_to_pointer(cursor, j-1);
+            cursor = g_utf8_offset_to_pointer(cursor, j);
             break;
           }
         }
       }
       new_slist = g_slist_append(new_slist, g_strdup(cursor));
     } else {
-      new_slist = g_slist_append(new_slist, text);
+      new_slist = g_slist_append(new_slist, g_strdup(text));
     }
   }
 
