@@ -19,4 +19,4 @@ while(<PS>) {
 close(PS);
 close(OUT);
 system("gv -landscape -scale 2 $tmpfile");
-#unlink($tmpfile);
+unlink($tmpfile);
