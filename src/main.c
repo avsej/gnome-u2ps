@@ -53,6 +53,13 @@ const struct {
   { NULL, NULL }
 };
 
+void
+u2ps_show_version()
+{
+    g_print("Copyright (C) 2004 Yukihiro Nakai <nakai@gnome.gr.jp>\n");
+    g_print(_("%s version is %s\n"), PACKAGE, VERSION);
+}
+
 gchar*
 g_utf8_strndup(gchar* utf8text, gint n)
 {
@@ -120,6 +127,9 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
 
   gnome_print_setlinewidth(context, 0.5);
 
+  gnome_print_setrgbcolor(context, 0.95, 0.95, 0.95);
+  gnome_print_rect_filled(context, xoffset+30, pageh-60, pagew-40, 20);
+  gnome_print_setrgbcolor(context, 0, 0, 0);
   gnome_print_rect_stroked(context, xoffset+30, 40, pagew-40, pageh-80);
   gnome_print_line_stroked(context, xoffset+30, pageh-60, xoffset+20+pagew-30, pageh-60);
 
@@ -178,6 +188,7 @@ int main(int argc, char** argv) {
   GValue value = { 0, };
   poptContext ctx;
   gchar **popt_args;
+  gchar *filename = NULL;
 
   locale = setlocale(LC_ALL, "");
 
@@ -196,8 +207,7 @@ int main(int argc, char** argv) {
 			       NULL);
 
   if( show_version ) {
-    g_print("Copyright (C) 2004 Yukihiro Nakai <nakai@gnome.gr.jp>\n");
-    g_print(_("%s version is %s\n"), PACKAGE, VERSION);
+    u2ps_show_version();
     return 0;
   }
 
@@ -209,11 +219,13 @@ int main(int argc, char** argv) {
   popt_args = (char**) poptGetArgs(ctx);
 
   if( popt_args ) {
-    for(i=0;popt_args[i];i++) {
-      g_print("%s\n", popt_args[i]);
-    }
+    filename = popt_args[0];
   }
-  exit(0);
+
+  if( !filename ) {
+    g_print(_("Specify filename for input.\n"));
+    exit(0);
+  }
 
   for(i=0;localefont[i].prefix != NULL;i++) {
     if( !strncmp(locale, localefont[i].prefix, strlen(localefont[i].prefix)) ) {
@@ -223,21 +235,26 @@ int main(int argc, char** argv) {
   }
 
   /* Read the Input Text */
-  fp = fopen("test.txt", "r");
+  fp = fopen(filename, "r");
   if( !fp ) {
-    g_error(_("File is not found.\n"));
+    g_error(_("File is not found: %s\n"), filename);
   }
   while(fgets(buf, 1024, fp) > 0 ) {
-    const gchar* end;
     gchar* tmpbuf = g_strdup(buf);
     if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
       tmpbuf[strlen(tmpbuf)-1] = '\0';
     text_slist = g_slist_append(text_slist, tmpbuf);
-    if( !g_utf8_validate(tmpbuf, -1, &end) ) {
-      g_error("File is not valid UTF-8\n");
-    }
   }
   fclose(fp);
+
+  /* UTF-8 check */
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    const gchar* end;
+    gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+    if( !g_utf8_validate(tmpbuf, -1, &end) ) {
+      g_error(_("File is not valid UTF-8\n"));
+    }
+  }
 
   /* Prepare Printing */
   job = gnome_print_job_new(NULL);
@@ -298,7 +315,7 @@ int main(int argc, char** argv) {
       gnome_print_show(context, text);
     }
     nthline += j;
-    draw_pageframe(context, face, xoffset, pagew, pageh, _("Test Title"), i+1, pages);
+    draw_pageframe(context, face, xoffset, pagew, pageh, filename, i+1, pages);
     gnome_print_showpage(context);
   }
 

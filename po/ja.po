@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-03-22 16:45+0900\n"
+"POT-Creation-Date: 2004-03-22 17:00+0900\n"
 "PO-Revision-Date: 2004-03-21 23:00+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -34,9 +34,10 @@ msgid "Specify filename for input.\n"
 msgstr "入力するファイル名を指定してください。\n"
 
 #: src/main.c:237
-msgid "File is not found.\n"
-msgstr "ファイルが見つかりません。\n"
+#, c-format
+msgid "File is not found: %s\n"
+msgstr "ファイルが見つかりません: %s\n"
 
-#: src/main.c:310
-msgid "Test Title"
-msgstr "テストタイトル"
+#: src/main.c:246
+msgid "File is not valid UTF-8\n"
+msgstr "ファイルが正しいUTF-8ではありません\n"
