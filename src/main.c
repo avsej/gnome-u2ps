@@ -857,6 +857,90 @@ int main(int argc, char** argv) {
     page_title = basename(filename);
   }
 
+  /* Parse Multipart Mail */
+  if( parse_mail ) {
+    gchar* multipart_boundary = NULL;
+    gchar* content_type = NULL;
+    GSList* header_slist = NULL;
+    GSList* body_slist = NULL;
+    gchar* text = NULL;
+
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      text = g_slist_nth_data(text_slist, i);
+
+      if( *text == ' ' || *text == '\t' ) {
+        gchar* last = g_slist_last(header_slist)->data;
+        gchar* newtext = g_strconcat(last, text+1, NULL);
+        g_free(last);
+        g_slist_last(header_slist)->data = newtext;
+        i++;
+        continue;
+      }
+
+      header_slist = g_slist_append(header_slist, g_strdup(text));
+
+      if( *text == '\0' )
+        break;
+    }
+
+    if( *text == '\0' )
+      i++;
+
+    for(;i<g_slist_length(text_slist);i++) {
+      text = g_slist_nth_data(text_slist, i);
+      body_slist = g_slist_append(body_slist, g_strdup(text));
+    }
+
+    for(i=0;i<g_slist_length(header_slist);i++) {
+      gchar* header = g_slist_nth_data(header_slist, i);
+      if( *header == '\0' )
+        break; /* Header end */
+      if( !g_ascii_strncasecmp(header, "Content-Type: ", strlen("Content-Type: ")) ) {
+        content_type = header;
+        break;
+      }
+    }
+
+    /* Get multipart boundary */
+    if( content_type ) {
+      gchar* tmpbuf = NULL;
+      gchar* cursor = content_type + strlen("Content-Type: ");
+      if( !g_ascii_strncasecmp(cursor, "multipart/", strlen("multipart/")) ) {
+        multipart_boundary = strstr(cursor, "boundary=");
+        if( multipart_boundary ) {
+          multipart_boundary += strlen("boundary=");
+          if( *multipart_boundary == '"' ) {
+            multipart_boundary++;
+          }
+          multipart_boundary = g_strdup(multipart_boundary);
+          if( strchr(multipart_boundary, ';' ) ) {
+            tmpbuf = g_strndup(multipart_boundary, strchr(multipart_boundary, ';')- multipart_boundary);
+            g_free(multipart_boundary);
+            multipart_boundary = tmpbuf;
+          }
+          if( strchr(multipart_boundary, '"' ) ) {
+            tmpbuf = g_strndup(multipart_boundary, strchr(multipart_boundary, '"')- multipart_boundary);
+            g_free(multipart_boundary);
+            multipart_boundary = tmpbuf;
+          }
+        }
+      }
+    }
+
+    if( multipart_boundary ) {
+      GSList* new_slist = NULL;
+      GSList* mpart_slist = parse_multipart(body_slist, multipart_boundary);
+      new_slist = g_slist_concat(header_slist, mpart_slist);
+      g_slist_free(text_slist);
+      text_slist = new_slist;
+    } else {
+      g_slist_free(header_slist);
+    }
+
+    g_free(multipart_boundary);
+    g_slist_free(body_slist);
+  }
+
   /* Cut Headers */
   if( parse_mail ) {
     new_slist = cut_headers(text_slist);

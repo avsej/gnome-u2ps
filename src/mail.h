@@ -25,6 +25,22 @@
 
 #include <glib.h>
 
+typedef struct _MultiPart {
+  GSList* header_slist;
+  GSList* body_slist;
+
+  gchar* mimetype;
+  gchar* charset;
+  gchar* name; /* Name property in 'Content-Type:' header line */
+  gchar* filename; /* Filename property in 'Content-Disposition: ' header line */
+  gboolean is_base64;
+  gboolean is_qp; /* Quoted Printable Format */
+} MultiPart;
+
+/* Multipart funcs */
+GSList* parse_multipart(GSList* body_slist, gchar* multipart_boundary);
+
+/* Mail handling funcs */
 gchar* get_charset(GSList* mail_slist);
 gchar* get_subject(GSList* mail_slist);
 GSList* cut_headers(GSList* mail_slist);

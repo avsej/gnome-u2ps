@@ -46,7 +46,7 @@ static const gchar* worthy_headers[] = {
 static const guchar* hexchar = "0123456789ABCDEF";
 
 /* Decode quoted-printable message */
-static gchar*
+gchar*
 decode_quoted_printable(gchar* str) {
   guint i = 0;
   gboolean shift = 0;
@@ -354,6 +354,12 @@ get_charset(GSList* mail_slist)
   if( !content_type )
     return NULL;
 
+  /* If the mail is multipart, no need to handle charset here */
+  if( !g_ascii_strncasecmp(content_type, "Content-Type: multipart/", strlen("Content-Type: multipart/")) ) {
+    g_free(content_type);
+    return g_strdup("us-ascii");
+  }
+
   tmpbuf = content_type;
   content_type = g_ascii_strdown(tmpbuf, -1);
   g_free(tmpbuf);
@@ -384,6 +390,364 @@ get_charset(GSList* mail_slist)
   g_free(content_type);
 
   return charset;
+}
+
+GSList*
+print_multi_part(MultiPart* mpart) {
+  guint i = 0;
+  gchar* name = NULL;
+  gchar* mimetype = "";
+  GSList* result_slist = NULL;
+
+  if( !mpart )
+    return;
+
+  if( mpart->filename )
+    name = mpart->filename;
+
+  /* Name should be overwrite to filename */
+  if( mpart->name )
+    name = mpart->name;
+
+  if( mpart->mimetype )
+    mimetype = mpart->mimetype;
+
+  if( name ) {
+    if( mpart->mimetype
+      && (!strcmp(mpart->mimetype, "text/plain")
+      ||  !strcmp(mpart->mimetype, "text/x-patch")) ) {
+      result_slist = g_slist_append(result_slist, g_strdup_printf("[Inline Attachment: %s %s]", name, mimetype));
+    } else if( mpart->mimetype && !strcmp(mpart->mimetype, "application/pgp-signature") ) {
+      /* Do Nothing */
+    } else {
+      result_slist = g_slist_append(result_slist, g_strdup_printf("[Attachment: %s %s]", name, mimetype));
+    }
+  }
+
+  if( mpart->mimetype
+    && (!strcmp(mpart->mimetype, "text/plain")
+    /* Cannot handle multipart/alternative currently */
+    ||  !strcmp(mpart->mimetype, "multipart/alternative")
+    /* Cannot handle multpart/signed, either */
+    ||  !strcmp(mpart->mimetype, "multipart/signed")
+    ||  !strcmp(mpart->mimetype, "text/x-patch")
+    ||  !strcmp(mpart->mimetype, "application/pgp-signature") ) ) {
+    for(i=0;i<g_slist_length(mpart->body_slist);i++) {
+      gchar* text = g_slist_nth_data(mpart->body_slist, i);
+      result_slist = g_slist_append(result_slist, g_strdup(text));
+    }
+    //g_print("\n"); /* Print extra newline for text/plain, for upcoming attachments */
+  }
+
+  return result_slist;
+}
+
+void
+dump_multi_part(MultiPart* mpart) {
+  guint i;
+
+  if( !mpart )
+    return;
+
+  g_print("\n");
+  for(i=0;i<g_slist_length(mpart->header_slist);i++) {
+    gchar* text = g_slist_nth_data(mpart->header_slist, i);
+    g_print("HEADER: %s\n", text);
+  }
+//  for(i=0;i<g_slist_length(mpart->body_slist);i++) {
+//    gchar* text = g_slist_nth_data(mpart->body_slist, i);
+//    g_print("BODY: %s\n", text);
+//  }
+
+  g_print("MIMETYPE: %s\n", mpart->mimetype);
+  g_print("CHARSET: %s\n", mpart->charset);
+  g_print("NAME: %s\n", mpart->name);
+  g_print("FILENAME: %s\n", mpart->filename);
+  g_print("BASE64: %s\n", mpart->is_base64 ? "TRUE" : "FALSE");
+  g_print("QP: %s\n", mpart->is_qp ? "TRUE" : "FALSE");
+}
+
+void
+multi_part_free(MultiPart* mpart) {
+  if( !mpart )
+    return;
+
+  g_slist_free(mpart->header_slist);
+  g_slist_free(mpart->body_slist);
+
+  mpart->mimetype ? g_free(mpart->mimetype) : TRUE;
+  mpart->charset ? g_free(mpart->charset) : TRUE;
+  mpart->name ? g_free(mpart->name) : TRUE;
+  mpart->filename ? g_free(mpart->filename) : TRUE;
+}
+
+MultiPart*
+multi_part_new(GSList* mpart_slist) {
+  MultiPart* result = g_new0(MultiPart, 1);
+  guint i = 0;
+  gchar* tmpbuf = NULL;
+  gchar* lastdata = NULL;
+  GSList* header_slist = NULL;
+
+  for(i=0;i<g_slist_length(mpart_slist);i++) {
+    gchar* text = g_slist_nth_data(mpart_slist, i);
+
+    if( *text =='\0' )
+      break;
+
+    if( *text == ' ' || *text == '\t' ) {
+      lastdata = g_slist_last(result->header_slist)->data;
+      tmpbuf = g_strconcat(lastdata, text+1, NULL);
+      g_free(lastdata);
+      g_slist_last(result->header_slist)->data = tmpbuf;
+      continue;
+    }
+
+    result->header_slist = g_slist_append(result->header_slist, g_strdup(text));
+  }
+
+  for(;i<g_slist_length(mpart_slist);i++) {
+    gchar* text = g_slist_nth_data(mpart_slist, i);
+    result->body_slist = g_slist_append(result->body_slist, g_strdup(text));
+  }
+
+  /* Some directives */
+#define TRANSFER_ENCODING "Content-Transfer-Encoding: "
+#define CONTENT_TYPE "Content-Type: "
+#define CONTENT_DISPOSITION "Content-Disposition: "
+
+  /* Parse Header */
+  header_slist = result->header_slist;
+  for(i=0;i<g_slist_length(header_slist);i++) {
+    gchar* text = g_slist_nth_data(header_slist, i);
+    if( !g_ascii_strncasecmp(text, TRANSFER_ENCODING, strlen(TRANSFER_ENCODING) ) ) {
+      text += strlen(TRANSFER_ENCODING);
+      if( !g_ascii_strncasecmp(text, "base64", strlen("base64")) ) {
+        result->is_base64 = TRUE;
+        continue;
+      }
+      if( !g_ascii_strncasecmp(text, "quoted-printable", strlen("quoted-printable")) ) {
+        result->is_qp = TRUE;
+      }
+      continue; /* Go to the next header */
+    }
+    if( !g_ascii_strncasecmp(text, CONTENT_TYPE, strlen(CONTENT_TYPE)) ) {
+      text += strlen(CONTENT_TYPE);
+      /* Get the mimetype */
+      tmpbuf = strchr(text, ';');
+      if( tmpbuf ) {
+        result->mimetype = g_strndup(text, tmpbuf - text);
+      } else {
+        result->mimetype = g_strdup(text);
+        continue; /* No need to parse more */
+      }
+      /* Get its name */
+      tmpbuf = strstr(text, "name=");
+      if( tmpbuf ) {
+        gchar* semicolon = NULL;
+        gchar* dquote = NULL;
+        tmpbuf += strlen("name=");
+        if( *tmpbuf == '"' )
+          tmpbuf++;
+        semicolon = strchr(tmpbuf, ';');
+        dquote = strchr(tmpbuf, '"');
+        if( !semicolon && !dquote ) {
+          result->name = g_strdup(tmpbuf);
+          continue; /* No more property */
+        } else if ( semicolon && dquote ) {
+          result->name = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
+        } else if( semicolon ) {
+          result->name = g_strndup(tmpbuf, semicolon-tmpbuf);
+        } else if( dquote ) {
+          result->name = g_strndup(tmpbuf, dquote-tmpbuf);
+        }
+      }
+      /* Get its charset */
+      tmpbuf = strstr(text, "charset=");
+      if( tmpbuf ) {
+        gchar* semicolon = NULL;
+        gchar* dquote = NULL;
+        tmpbuf += strlen("charset=");
+        if( *tmpbuf == '"' )
+          tmpbuf++;
+        semicolon = strchr(tmpbuf, ';');
+        dquote = strchr(tmpbuf, '"');
+        if( !semicolon && !dquote ) {
+          result->charset = g_strdup(tmpbuf);
+          continue; /* No more property */
+        } else if ( semicolon && dquote ) {
+          result->charset = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
+        } else if( semicolon ) {
+          result->charset = g_strndup(tmpbuf, semicolon-tmpbuf);
+        } else if( dquote ) {
+          result->charset = g_strndup(tmpbuf, dquote-tmpbuf);
+        }
+      }
+      continue; /* Go to the next header */
+    }
+    if( !g_ascii_strncasecmp(text, CONTENT_DISPOSITION, strlen(CONTENT_DISPOSITION)) ) {
+      text += strlen(CONTENT_DISPOSITION);
+      /* Get its filename */
+      tmpbuf = strstr(text, "filename=");
+      if( tmpbuf ) {
+        gchar* semicolon = NULL;
+        gchar* dquote = NULL;
+        tmpbuf += strlen("filename=");
+        if( *tmpbuf == '"' )
+          tmpbuf++;
+        semicolon = strchr(tmpbuf, ';');
+        dquote = strchr(tmpbuf, '"');
+        if( !semicolon && !dquote ) {
+          result->filename = g_strdup(tmpbuf);
+          continue; /* No more property */
+        } else if ( semicolon && dquote ) {
+          result->filename = g_strndup(tmpbuf, MIN(semicolon, dquote)-tmpbuf);
+        } else if( semicolon ) {
+          result->filename = g_strndup(tmpbuf, semicolon-tmpbuf);
+        } else if( dquote ) {
+          result->filename = g_strndup(tmpbuf, dquote-tmpbuf);
+        }
+      }
+      continue; /* Go to the next header */
+    }
+  }
+
+  /* Base64 decode */
+  if( result->name ) {
+    tmpbuf = base64_decode(result->name);
+    g_free(result->name);
+    result->name = tmpbuf;
+  }
+  if( result->filename ) {
+    tmpbuf = base64_decode(result->filename);
+    g_free(result->filename);
+    result->filename = tmpbuf;
+  }
+
+  /* Base64 Body decode - for text/plain,text/x-patch only */
+  if( result->mimetype && result->is_base64
+    && (!strcmp(result->mimetype, "text/plain")
+    ||  !strcmp(result->mimetype, "text/x-patch")) ) {
+    GSList* body_slist = NULL;
+    gchar** strpp = NULL;
+    gchar** strpp2 = NULL;
+    gchar* strp = NULL;
+
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* buf = NULL;
+      gchar* cursor = text;
+      gchar* bufp = NULL;
+
+      if( *text == '\0' )
+        continue;
+
+      buf = bufp = g_new0(gchar, strlen(text)+1);
+      while( *cursor != '\0' ) {
+        guchar c = 0;
+        c = strchr(base64, cursor[0])-base64;
+        buf[0] = c<<2;
+        c = strchr(base64, cursor[1])-base64;
+        buf[0] |= c>>4;
+        buf[1]  = c<<4;
+        c = (cursor[2] != '=') ? strchr(base64, cursor[2])-base64 : 0;
+        buf[1] |= c>>2;
+        buf[2]  = c<<6;
+        c = (cursor[3] != '=') ? strchr(base64, cursor[3])-base64 : 0;
+        buf[2] |= c;
+        buf += 3;
+        if( strlen(cursor) < 4 ) {
+          g_warning("base64 line is not 4 multiply.\n");
+          break;
+        }
+        cursor += 4;
+      }
+
+      body_slist = g_slist_append(body_slist, bufp);
+    }
+
+    /* Split at newline and remake body_slist */
+    strpp = g_new0(gchar*, g_slist_length(body_slist)+1);
+    for(i=0;i<g_slist_length(body_slist);i++) {
+      strpp[i] = g_strdup(g_slist_nth_data(body_slist, i));
+    }
+    g_slist_free(body_slist);
+    body_slist = NULL;
+
+    strp = g_strjoinv("", strpp);
+    g_strfreev(strpp);
+    strpp = g_strsplit(strp, "\r\n", -1);
+    g_free(strp);
+    strp = g_strjoinv("\n", strpp);
+    g_strfreev(strpp);
+    strpp = g_strsplit(strp, "\n", -1);
+    g_free(strp);
+    strpp2 = strpp;
+    while(*strpp != NULL) {
+      //g_print("%s\n", *strpp);
+      body_slist = g_slist_append(body_slist, g_strdup(*strpp++));
+    }
+    g_strfreev(strpp2);
+
+
+    g_slist_free(result->body_slist);
+    result->body_slist = body_slist;
+  }
+
+  /* Quoted Printable Body decode */
+  if( result->is_qp ) {
+    GSList* body_slist = NULL;
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* newtext = decode_quoted_printable(text);
+      body_slist = g_slist_append(body_slist, newtext);
+    }
+    g_slist_free(result->body_slist);
+    result->body_slist = body_slist;
+  }
+
+  /* Codeset Convert */
+  if( result->charset ) {
+    GSList* body_slist = NULL;
+    for(i=0;i<g_slist_length(result->body_slist);i++) {
+      gchar* text = g_slist_nth_data(result->body_slist, i);
+      gchar* utf8text = u2ps_convert(text, result->charset);
+      body_slist = g_slist_append(body_slist, utf8text);
+    }
+    g_slist_free(result->body_slist);
+    result->body_slist = body_slist;
+  }
+
+  return result;
+}
+
+GSList*
+parse_multipart(GSList* body_slist, gchar* multipart_boundary) {
+  guint i = 0;
+  GSList* mpart_slist = NULL;
+  GSList* result_slist = NULL;
+
+  for(i=0;i<g_slist_length(body_slist);i++) {
+    gchar* text = g_slist_nth_data(body_slist, i);
+    if( multipart_boundary && strstr(text, multipart_boundary) ) {
+      if( mpart_slist ) {
+        MultiPart* mpart = multi_part_new(mpart_slist);
+//        dump_multi_part(mpart);
+        result_slist = g_slist_concat(result_slist, print_multi_part(mpart));
+        g_slist_free(mpart_slist);
+        mpart_slist = NULL;
+        multi_part_free(mpart);
+      }
+      continue;
+    }
+    mpart_slist = g_slist_append(mpart_slist, g_strdup(text));
+  }
+
+  if( mpart_slist )
+    g_slist_free(mpart_slist);
+
+  return result_slist;
 }
 
 gchar*
@@ -512,6 +876,14 @@ cut_headers(GSList* mail_slist)
     gchar* text = g_slist_nth_data(mail_slist, i);
     new_slist = g_slist_append(new_slist, text);
   }
+
+  /* Test */
+#if 0
+  for(i=0;i<g_slist_length(new_slist);i++) {
+    gchar* text = g_slist_nth_data(new_slist, i);
+    g_print("%s\n", text);
+  }
+#endif
 
   return new_slist;
 }

@@ -145,8 +145,8 @@ u2ps_convert(gchar* str, gchar* codeset) {
 
 gchar*
 tab2spaces(gchar* str) {
-  gint i;
-  gchar* tmpbuf;
+  gint i = 0;
+  gchar* tmpbuf = NULL;
 
   if( str == NULL )
     return NULL;
