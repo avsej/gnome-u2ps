@@ -365,6 +365,27 @@ int main(int argc, char** argv) {
       tmpbuf[strlen(tmpbuf)-1] = '\0';
   }
 
+  /* Japanese codeset auto detection - iso-2022-jp */
+  /* Just check the 8th bit for simplify */
+  if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
+    gboolean is_2022jp = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      gint j;
+      for(j=0;j<strlen(tmpbuf);j++) {
+        if( tmpbuf[j] & 0x80 ) {
+          is_2022jp = FALSE;
+          break;
+        }
+      }
+      if( !is_2022jp )
+        break;
+    }
+    if( is_2022jp ) {
+      input_encoding = "ISO-2022-JP";
+    }
+  }
+
   /* Japanese codeset auto detection - EUC-JP */
   if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
     gboolean is_eucjp = TRUE;
@@ -388,27 +409,6 @@ int main(int argc, char** argv) {
     }
     if( is_sjis ) {
       input_encoding = "SJIS";
-    }
-  }
-
-  /* Japanese codeset auto detection - iso-2022-jp */
-  /* Just check the 8th bit for simplify */
-  if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
-    gboolean is_2022jp = TRUE;
-    for(i=0;i<g_slist_length(text_slist);i++) {
-      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
-      gint j;
-      for(j=0;j<strlen(tmpbuf);j++) {
-        if( tmpbuf[j] & 0x80 ) {
-          is_2022jp = FALSE;
-          break;
-        }
-      }
-      if( !is_2022jp )
-        break;
-    }
-    if( is_2022jp ) {
-      input_encoding = "ISO-2022-JP";
     }
   }
 
