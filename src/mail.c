@@ -1014,8 +1014,8 @@ mail_shape_header(Mail* mail) {
         tmpbuf = g_strconcat(last, text, NULL);
         g_free(last);
         g_slist_last(mean_slist)->data = tmpbuf;
-
       }
+      continue;
     }
 
     if( is_header_match(text, visible_headers) ) {

@@ -1,6 +1,7 @@
 2004-05-06  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Add --force-text option for when magic doesn't mean.
+	* src/mail.c: Fix to handle long long header
 
 2004-05-04  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
