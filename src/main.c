@@ -25,6 +25,7 @@
 #include <string.h>
 #include <locale.h>
 #include <time.h>
+#include <libgen.h>
 #include <libgnomeprint/gnome-print.h>
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
@@ -38,6 +39,8 @@ char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
 
 #define DEFAULT_FAMILY_NAME "Luxi Sans"
+
+#define g_str_is_euckr(str) g_str_is_eucjp(str)
 
 static struct poptOption const
 u2ps_popt_options[] = {
@@ -77,10 +80,124 @@ u2ps_show_version()
     g_print(_("%s version is %s\n"), PACKAGE, VERSION);
 }
 
+/* g_str_is_big5()
+   if text is Big5  --> returns TRUE
+   if text is ascii --> returns TRUE
+   if text is UTF-8,etc --> returns FALSE
+
+   Big5 code mapping:
+    1st byte: 0xA1-0xC6, 0xC9-0xF9
+    2nd byte: 0x40-0x7E, 0xA1-0xFE
+*/
+gboolean
+g_str_is_big5(gchar* str) {
+  gint shift = 0;
+  gint i;
+  guchar* text = (guchar*)str;
+
+  if( text == NULL || *text == '\0' )
+    return TRUE;
+
+  for(i=0;i<strlen(text);i++) {
+    if( shift == 0 && (text[i] & 0x80) ) {
+      if( (text[i] < 0xA1 && text[i] > 0xC6) || (text[i] < 0xC9 && text[i] > 0xF9) ) {
+        /* Outside of Big5 mapping area */
+        return FALSE;
+      }
+      shift++;
+    } else { /* shift = 1 */
+      if( (text[i] < 0x40 && text[i] > 0x7E) || (text[i] < 0xA1 && text[i] > 0xFE) ) {
+        /* Outside of Big5 mapping 2nd byte condition */
+        return FALSE;
+      }
+      shift = 0;
+    }
+  }
+
+  return TRUE;
+}
+
+/* g_str_is_gb18030()
+   if text is GB18030  --> returns TRUE
+   if text is ascii    --> returns TRUE
+   if text is UTF-8,etc --> returns FALSE
+
+   GB18030 code mapping:
+   1byte area: 0x00-0x7F
+
+   2bytes area:
+    1st: 0x81-0xFE
+    2nd: 0x40-0x7E,0x80-0xFE
+
+   4bytes area:
+    1st: 0x81-0xFE
+    2nd: 0x30-0x39
+    3rd: 0x81-0xFE
+    4th: 0x30-0x39
+*/
+gboolean
+g_str_is_gb18030(gchar* str) {
+  gint shift = 0;
+  gint i;
+  guchar* text = (guchar*)str;
+
+  if( text == NULL || *text == '\0' )
+    return TRUE;
+
+  for(i=0;i<strlen(text);i++) {
+    if( shift == 3 ) {
+      if ( text[i] >= 0x30 && text[i] <= 0x39 ) {
+        shift = 0; /* Clear */
+        continue;
+      }
+      return FALSE;
+    }
+
+    /* 3rd byte check */
+    if( shift == 2 ) {
+      if( text[i] >= 0x81 && text[i] <= 0xFE ) {
+        shift = 3;
+        continue;
+      }
+      return FALSE;
+    }
+
+    /* 2nd byte check */
+    if( shift == 1 ) {
+      if( (text[i] >= 0x40 && text[i] <= 0x7E) || (text[i] >= 0x80 && text[i] <= 0xFE) ) {
+        shift = 0;
+        continue;
+      } else if ( text[i] >= 0x30 && text[i] <= 0x39 ) {
+        shift = 2;
+        continue;
+      }
+      return FALSE;
+    }
+
+    /* 1st byte check */
+    if( text[i] < 0x7F )
+      continue;
+
+    if( text[i] >= 0x81 && text[i] <= 0xFE ) {
+      shift = 1;
+      continue;
+    }
+
+    /* Others are not Big5 */
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 /* g_str_is_eucjp()
    if text is eucjp --> returns TRUE
    if text is ascii --> returns TRUE
    if text is UTF-8,etc --> returns FALSE
+
+   EUC-JP code mapping:
+     1st byte: 0xA1-0xFE
+     2nd byte: 0xA1-0xFE
 */
 gboolean
 g_str_is_eucjp(gchar* str) {
@@ -92,21 +209,20 @@ g_str_is_eucjp(gchar* str) {
     return TRUE;
 
   for(i=0;i<strlen(text);i++) {
+    if( shift == 1 ) {
+      if( text[i] < 0xA1 && text[i] > 0xFE ) {
+        return FALSE;
+      } else {
+        shift = 0;
+        continue;
+      }
+    }
     if( text[i] & 0x80 ) {
       if( text[i] < 0xA1 && text[i] > 0xFE ) {
         /* Outside of EUC-JP mapping area */
         return FALSE;
       }
-      if( shift == 0 || shift == 1 ) {
-        shift++;
-      } else if( shift == 2 ) {
-        shift = 1;
-      }
-    } else {
-      if( shift == 1 ) {
-        return FALSE;
-      }
-      shift = 0;
+      shift++;
     }
   }
 
@@ -370,6 +486,45 @@ int main(int argc, char** argv) {
     input_encoding = get_charset(text_slist);
   }
 
+  /* Korean codeset auto detection - EUC-KR */
+  if( !input_encoding && !strncmp(locale, "ko_KR", strlen("ko_KR")) ) {
+    gboolean is_euckr = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_euckr = g_str_is_euckr(tmpbuf)) )
+        break;
+    }
+    if( is_euckr ) {
+      input_encoding = "EUC-KR";
+    }
+  }
+
+  /* Simplified Chinese(zh_CN) codeset auto detection - GB18030 */
+  if( !input_encoding && !strncmp(locale, "zh_CN", strlen("zh_CN")) ) {
+    gboolean is_gb18030 = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_gb18030 = g_str_is_gb18030(tmpbuf)) )
+        break;
+    }
+    if( is_gb18030 ) {
+      input_encoding = "GB18030";
+    }
+  }
+
+  /* Traditional Chinese(zh_TW) codeset auto detection - Big5 */
+  if( !input_encoding && !strncmp(locale, "zh_TW", strlen("zh_TW")) ) {
+    gboolean is_big5 = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_big5 = g_str_is_big5(tmpbuf)) )
+        break;
+    }
+    if( is_big5 ) {
+      input_encoding = "Big5";
+    }
+  }
+
   /* Japanese codeset auto detection - iso-2022-jp */
   /* Just check the 8th bit for simplify */
   if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
@@ -429,6 +584,7 @@ int main(int argc, char** argv) {
        gchar* conv_before = g_slist_nth_data(text_slist, i);
        gchar* conv_after = g_convert(conv_before, -1, "UTF-8", input_encoding, &bytes_read, &bytes_written, &conv_error);
        if( conv_error ) {
+         g_free(conv_after);
          g_print("%s\n", conv_error->message);
          g_print(_("Falling back to UTF-8\n"));
          break; /* Falling back to UTF-8 */
@@ -451,7 +607,7 @@ int main(int argc, char** argv) {
   if( parse_mail ) {
     page_title = get_subject(text_slist);
   } else {
-    page_title = filename;
+    page_title = basename(filename);
   }
 
   /* Cut Headers */

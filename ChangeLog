@@ -1,3 +1,14 @@
+2004-04-01  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* src/main.c: Add Big5 detection code.
+	* src/main.c: Add GB18030 detection code.
+	* src/main.c: Add EUC-KR detection code.
+	* src/main.c: Fix EUC-JP detection logic.
+	* src/mail.c: Support other charsets for subject
+	* src/mail.c: Fix to show 2nd line of worthy header
+	* src/mail.c: Simplify the logic to detect 2nd line subject
+	* src/mail.c: Decode the subject in the body
+
 2004-03-31  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Arabic font
