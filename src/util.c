@@ -254,3 +254,35 @@ stdin2file(gchar* filename, const gchar* prestr) {
 
   return tmpname;
 }
+
+/* Cut at the newline */
+GSList*
+cut_at_newline(GSList* text_slist) {
+  guint i = 0;
+  GSList* new_slist = NULL;
+
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* text = g_slist_nth_data(text_slist, i);
+    if( strchr(text, '\n') == NULL ) {
+      new_slist = g_slist_append(new_slist, g_strdup(text));
+      continue;
+    } else if ( strlen(strchr(text, '\n')) == 1 ) {
+      new_slist = g_slist_append(new_slist, g_strdup(text));
+      continue;
+    } else {
+      gchar* last = NULL;
+      gchar **cursorpp, **strpp;
+      cursorpp = strpp = g_strsplit(text, "\n", -1);
+      while( *cursorpp != NULL ) {
+        new_slist = g_slist_append(new_slist, g_strconcat(*cursorpp, "\n", NULL));
+        cursorpp++;
+      }
+      last = g_slist_last(new_slist)->data;
+      last[strlen(last)-1] = '\0';
+      g_strfreev(strpp);
+      continue;
+    }
+  }
+
+  return new_slist;
+}

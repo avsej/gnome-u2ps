@@ -663,6 +663,7 @@ int main(int argc, char** argv) {
     if( !gnome_vfs_init() ) {
       g_error(_("Could not initialize GnomeVFS"));
     }
+    g_print(_("Fetching..."));
     vfs_result = gnome_vfs_open(&vfs_handle, filename, GNOME_VFS_OPEN_READ);
   }
   if( !fp && vfs_result != GNOME_VFS_OK ) {
@@ -670,6 +671,7 @@ int main(int argc, char** argv) {
   }
 
   if( vfs_handle ) {
+    g_print("...");
     while(vfs_result == GNOME_VFS_OK) {
       vfs_result = gnome_vfs_read(vfs_handle, buf, sizeof(buf)-1, &vfs_read);
       buf[vfs_read] = '\0';
@@ -677,6 +679,10 @@ int main(int argc, char** argv) {
     }
     gnome_vfs_close(vfs_handle);
     gnome_vfs_shutdown();
+    g_print(_("DONE\n"));
+    new_slist = cut_at_newline(text_slist);
+    g_slist_free(text_slist);
+    text_slist = new_slist;
   } else {
 
     memset(buf, 0, sizeof(buf));
@@ -713,34 +719,10 @@ int main(int argc, char** argv) {
         fclose(fp);
       }
 
-      /* Cut the line at newline */
-      new_slist = NULL;
-      for(i=0;i<g_slist_length(text_slist);i++) {
-        gchar* text = g_slist_nth_data(text_slist, i);
-        if( strchr(text, '\n') == NULL ) {
-          new_slist = g_slist_append(new_slist, g_strdup(text));
-          continue;
-        } else if( strlen(strchr(text, '\n')) == 1 ) {
-          new_slist = g_slist_append(new_slist, g_strdup(text));
-          continue;
-        } else {
-          gchar* last = NULL;
-          gchar **cursorpp, **strpp;
-          cursorpp = strpp = g_strsplit(text, "\n", -1);
-          while( *cursorpp != NULL ) {
-            new_slist = g_slist_append(new_slist, g_strconcat(*cursorpp, "\n", NULL));
-            cursorpp++;
-          }
-          last = g_slist_last(new_slist)->data;
-          last[strlen(last)-1] = '\0';
-          g_strfreev(strpp);
-          continue;
-        }
-      }
+      new_slist = cut_at_newline(text_slist);
       g_slist_free(text_slist);
       text_slist = new_slist;
     }
-
     /* Support gzip file for input */
     else if( !force_text && !strncmp(buf, "\x1f\x8b", 2) ) {
       if( fp != stdin ) {
