@@ -115,6 +115,8 @@ get_header_property(GSList* header_slist, const gchar* header, const gchar* prop
   gchar* propstr = NULL;
   gchar* scolon = NULL; /* Semicolon ';' */
   gchar* dquote = NULL; /* Double quote '"' */
+  gchar* header_down = NULL;
+  gchar* prop_down = NULL;
 
   g_return_val_if_fail(header != NULL, NULL);
   g_return_val_if_fail(*header != '\0', NULL);
@@ -131,14 +133,21 @@ get_header_property(GSList* header_slist, const gchar* header, const gchar* prop
   text += strlen(header) + 2; /* Add an extra strlen(": ") */
   propstr = g_strconcat(property, "=", NULL);
 
-  cursor = strstr(text, propstr);
+  header_down = g_ascii_strdown((gchar*)text, -1);
+  prop_down = g_ascii_strdown(propstr, -1);
+  
+  cursor = strstr(header_down, prop_down);
 
   if( !cursor ) {
     g_free(propstr);
+    g_free(header_down);
+    g_free(prop_down);
     return NULL;
   }
 
-  cursor += strlen(propstr);
+  cursor = (gchar*)text +(strstr(header_down, prop_down) -header_down) +strlen(propstr);
+  g_free(header_down);
+  g_free(prop_down);
   g_free(propstr);
 
   if( *cursor == '"' )

@@ -406,6 +406,7 @@ get_unbreakable(gchar* text) {
       case '\t':
       case ',':
       case '.':
+      case '?':
       case '-':
         breakable[i] = TRUE;
         breakable[i+1] = TRUE;
