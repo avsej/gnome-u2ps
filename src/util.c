@@ -29,9 +29,26 @@ typedef struct _iso2022jp_pair {
 } iso2022jp_pair;
 
 static iso2022jp_pair iso2022jp_table[] = {
-  { "\x2d\x21", 0x2460 }, /* CIRCLED DIGIT ONE */
-  { "\x2d\x22", 0x2461 }, /* CIRCLED DIGIT TWO */
-  { "\x2d\x23", 0x2462 }, /* CIRCLED DIGIT THREE */
+  { "\x2d\x21", 0x2460 }, /* CIRCLED DIGIT 1 */
+  { "\x2d\x22", 0x2461 }, /* CIRCLED DIGIT 2 */
+  { "\x2d\x23", 0x2462 }, /* CIRCLED DIGIT 3 */
+  { "\x2d\x24", 0x2463 }, /* CIRCLED DIGIT 4 */
+  { "\x2d\x25", 0x2464 }, /* CIRCLED DIGIT 5 */
+  { "\x2d\x26", 0x2465 }, /* CIRCLED DIGIT 6 */
+  { "\x2d\x27", 0x2466 }, /* CIRCLED DIGIT 7 */
+  { "\x2d\x28", 0x2467 }, /* CIRCLED DIGIT 8 */
+  { "\x2d\x29", 0x2468 }, /* CIRCLED DIGIT 9 */
+  { "\x2d\x2a", 0x2469 }, /* CIRCLED DIGIT 10 */
+  { "\x2d\x2b", 0x246A }, /* CIRCLED DIGIT 11 */
+  { "\x2d\x2c", 0x246B }, /* CIRCLED DIGIT 12 */
+  { "\x2d\x2d", 0x246C }, /* CIRCLED DIGIT 13 */
+  { "\x2d\x2e", 0x246D }, /* CIRCLED DIGIT 14 */
+  { "\x2d\x2f", 0x246E }, /* CIRCLED DIGIT 15 */
+  { "\x2d\x30", 0x246F }, /* CIRCLED DIGIT 16 */
+  { "\x2d\x31", 0x2470 }, /* CIRCLED DIGIT 17 */
+  { "\x2d\x32", 0x2471 }, /* CIRCLED DIGIT 18 */
+  { "\x2d\x33", 0x2472 }, /* CIRCLED DIGIT 19 */
+  { "\x2d\x34", 0x2473 }, /* CIRCLED DIGIT 20 */
   { NULL, 0 },
 };
 

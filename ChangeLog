@@ -7,6 +7,7 @@
 	* src/util.c,src/util.h: Add u2ps_iso2022jp_to_utf8() to handle
 	  Circled Digit Numbers
 	* src/main.c: Use u2ps_convert
+	* src/main.c: Add more recoveries of glibc failures
 
 2004-04-07  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
