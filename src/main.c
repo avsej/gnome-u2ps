@@ -838,9 +838,15 @@ int main(int argc, char** argv) {
 
   /* Shape Arabic first */
   if( enable_arabic ) {
-    new_slist = shape_arabic(text_slist);
-    g_slist_free(text_slist);
-    text_slist = new_slist;
+    if( parse_mail ) {
+      new_slist = shape_arabic(mail->body_slist);
+      g_slist_free(mail->body_slist);
+      mail->body_slist = new_slist;
+    } else {
+      new_slist = shape_arabic(text_slist);
+      g_slist_free(text_slist);
+      text_slist = new_slist;
+    }
   }
 
   /* Get Page Title */
@@ -854,7 +860,8 @@ int main(int argc, char** argv) {
     page_title = basename(filename);
   }
 
-  /* Cut Headers */
+  /* Cut unneccessary headers */
+  /* All mail message handlings should be done before this code block */
   if( parse_mail ) {
     mail->mail_slist = text_slist;
     mail_shape_header(mail);

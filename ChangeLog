@@ -2,6 +2,7 @@
 
 	* src/mail.c: s/worthy/visible/
 	* src/mail.c,src/main.c: Handle quoted-printable tail '='
+	* src/mail.c: Handle X-UNKNOWN charset
 
 2004-04-28  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

@@ -122,7 +122,11 @@ u2ps_convert(gchar* str, gchar* codeset) {
   if( *str == '\0' )
     return g_strdup("");
 
-  result = g_convert(str, -1, "UTF-8", codeset, &bytes_read, &bytes_written, &conv_error);
+  if( !g_ascii_strcasecmp(codeset, "X-UNKNOWN") ) {
+    result = g_convert(str, -1, "UTF-8", "us-ascii", &bytes_read, &bytes_written, &conv_error);
+  } else {
+    result = g_convert(str, -1, "UTF-8", codeset, &bytes_read, &bytes_written, &conv_error);
+  }
 
   if( conv_error ) {
     if( result ) {
