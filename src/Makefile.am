@@ -11,6 +11,7 @@ u2ps_LDADD = \
 	$(U2PS_LIBS)
 
 u2ps_SOURCES = \
+	fribidi.c \
 	main.c \
 	mail.h \
 	mail.c \

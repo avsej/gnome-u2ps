@@ -40,6 +40,7 @@ char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
 char const *content_title = NULL;
 gboolean enable_arabic = FALSE;
+GSList* rtl_slist = NULL;
 
 #define DEFAULT_FAMILY_NAME "Luxi Sans"
 
@@ -812,6 +813,7 @@ int main(int argc, char** argv) {
   if( !strncmp(locale, "ar", 2) )
     enable_arabic = TRUE;
 
+  /* Shape Arabic first */
   if( enable_arabic ) {
     new_slist = shape_arabic(text_slist);
     g_slist_free(text_slist);
@@ -909,6 +911,13 @@ int main(int argc, char** argv) {
 
   text_slist = enable_hyphenation(text_slist, font, pagew-40-20);
 
+  /* Fribidi for Arabic text - Should be after Hyphenation */
+  if( enable_arabic ) {
+    new_slist = parse_fribidi(text_slist, &rtl_slist);
+    g_slist_free(text_slist);
+    text_slist = new_slist;
+  }
+
   /* Text max lines per page */
   maxlines = (pageh -40 -40 -20) / lineheight - 1;
 
@@ -936,7 +945,17 @@ int main(int argc, char** argv) {
         break;
 
       text = g_slist_nth_data(text_slist, j+nthline);
-      gnome_print_moveto(context, xoffset + 40, pageh -40 -20 -lineheight*(j+1));
+      if( enable_arabic ) {
+        gboolean is_rtl = (gboolean)g_slist_nth_data(rtl_slist, j+nthline);
+        gdouble textw = gnome_font_get_width_utf8(font, text);
+        if( is_rtl ) {
+          gnome_print_moveto(context, xoffset + 40 + (pagew-60) - textw, pageh -40 -20 -lineheight*(j+1));
+        } else {
+          gnome_print_moveto(context, xoffset + 40, pageh -40 -20 -lineheight*(j+1));
+        }
+      } else {
+        gnome_print_moveto(context, xoffset + 40, pageh -40 -20 -lineheight*(j+1));
+      }
       gnome_print_show(context, text);
     }
     nthline += j;

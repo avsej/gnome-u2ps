@@ -26,6 +26,7 @@ u2ps_reqs="
 glib-2.0		>= 2.0.0
 libgnome-2.0		>= 2.0.0
 libgnomeprint-2.2	>= 2.5.4
+fribidi			>= 0.10.4
 "
 
 PKG_CHECK_MODULES(U2PS, $u2ps_reqs)

@@ -32,5 +32,6 @@ gchar* u2ps_iso2022jp_to_utf8(gchar* str);
 
 /* Arabic */
 GSList* shape_arabic(GSList* text_slist);
+GSList* parse_fribidi(GSList* text_slist, GSList** rtl_slist_p);
 
 #endif /* _UTIL_H */
