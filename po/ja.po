@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-07 17:56+0900\n"
+"POT-Creation-Date: 2004-04-07 20:09+0900\n"
 "PO-Revision-Date: 2004-03-21 23:00+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -61,32 +61,28 @@ msgid "%s version is %s\n"
 msgstr "%s: バージョン %s\n"
 
 #. Header Page
-#: src/main.c:466
+#: src/main.c:512
 #, c-format
-msgid "%d/%d Pages"
-msgstr "%d/%d ページ"
+msgid "Page %d/%d"
+msgstr "ページ %d/%d"
 
-#: src/main.c:509
+#: src/main.c:554
 msgid "%B %e %Y %H:%M"
 msgstr "%B%e日 %H:%M"
 
-#: src/main.c:572
-msgid "Specify filename for input.\n"
-msgstr "入力するファイル名を指定してください。\n"
-
-#: src/main.c:578
+#: src/main.c:622
 msgid "Input and output file is same.\n"
 msgstr "入力と出力のファイルが同一です。\n"
 
-#: src/main.c:584
+#: src/main.c:630
 #, c-format
 msgid "File is not found: %s\n"
 msgstr "ファイルが見つかりません: %s\n"
 
-#: src/main.c:724
+#: src/main.c:783
 msgid "Falling back to UTF-8\n"
 msgstr "UTF-8にフォールバックします\n"
 
-#: src/main.c:758
+#: src/main.c:821
 msgid "File is not valid UTF-8\n"
 msgstr "ファイルが正しいUTF-8ではありません\n"

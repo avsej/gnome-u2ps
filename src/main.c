@@ -39,6 +39,7 @@ char const *output_filename = NULL;
 char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
 char const *content_title = NULL;
+gboolean enable_arabic = FALSE;
 
 #define DEFAULT_FAMILY_NAME "Luxi Sans"
 
@@ -509,7 +510,7 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   }
 
   /* Header Page */
-  pagenum = g_strdup_printf(_("%d/%d Pages"), nthpage, maxpage);
+  pagenum = g_strdup_printf(_("Page %d/%d"), nthpage, maxpage);
   pagenumw = gnome_font_get_width_utf8(font, pagenum);
   gnome_print_moveto(context, xoffset +30 + (pagew-30) - pagenumw - 30, pageh - 55.0);
   gnome_print_show(context, pagenum);
@@ -518,14 +519,13 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   /* Header Title */
   titlew = gnome_font_get_width_utf8(font, title);
   if( parse_mail ) {
-    //gnome_print_clip(context);
     gnome_print_newpath(context);
     gnome_print_moveto(context, xoffset, 0);
     gnome_print_lineto(context, xoffset +(pagew-30) -pagenumw ,0);
     gnome_print_lineto(context, xoffset +(pagew-30) -pagenumw ,pageh);
     gnome_print_lineto(context, xoffset, pageh);
     gnome_print_closepath(context);
-    gnome_print_eoclip(context);
+    gnome_print_clip(context);
 
     gnome_print_moveto(context, xoffset +30 +10 , pageh - 55.0);
   } else {
@@ -538,7 +538,7 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
     gnome_print_lineto(context, xoffset +30 +10 +(pagew-30) -pagenumw -60 ,pageh);
     gnome_print_lineto(context, xoffset +30 +10 +datew +10, pageh);
     gnome_print_closepath(context);
-    gnome_print_eoclip(context);
+    gnome_print_clip(context);
 
     xoffset1 = xoffset +30 +(pagew-30)/2 - titlew/2;
     xoffset2 = xoffset +30 +10 +datew +10;
@@ -694,6 +694,19 @@ int main(int argc, char** argv) {
     }
   }
 
+  /* Hong Kong (zh_HK) codeset auto detection - Big5-HKSCS */
+  if( !input_encoding && !strncmp(locale, "zh_HK", strlen("zh_HK")) ) {
+    gboolean is_hkscs = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_hkscs = g_str_is_hkscs(tmpbuf)) )
+        break;
+    }
+    if( is_hkscs ) {
+      input_encoding = "Big5-HKSCS";
+    }
+  }
+
   /* Traditional Chinese(zh_TW) codeset auto detection - Big5 */
   if( !input_encoding && !strncmp(locale, "zh_TW", strlen("zh_TW")) ) {
     gboolean is_big5 = TRUE;
@@ -783,6 +796,16 @@ int main(int argc, char** argv) {
       g_slist_free(text_slist);
       text_slist = convtext_slist;
     }
+  }
+
+  /* Arabic shaping */
+  if( !strncmp(locale, "ar", 2) )
+    enable_arabic = TRUE;
+
+  if( enable_arabic ) {
+    new_slist = shape_arabic(text_slist);
+    g_slist_free(text_slist);
+    text_slist = new_slist;
   }
 
   /* Get Page Title */

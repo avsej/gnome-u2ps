@@ -15,4 +15,5 @@ u2ps_SOURCES = \
 	mail.h \
 	mail.c \
 	util.h \
-	util.c
+	util.c \
+	shape_arabic.c

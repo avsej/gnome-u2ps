@@ -3,6 +3,7 @@
  * $Id$
  *
  * Copyright (c) 2003 Arabeyes, Mohammed Sameer.
+ * Copyright (C) 2004 Yukihiro Nakai.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +43,8 @@
 #include <stdio.h>
 #include <glib.h>
 
-#define DEBUG(x) fprintf(stderr, "%s\n", x)
+/* #define DEBUG(x) fprintf(stderr, "%s\n", x) */
+#define DEBUG(x)
 
 typedef struct
 {
@@ -101,32 +103,26 @@ char_node shaping_table[] = {
 };
 /* *INDENT-ON* */
 
-int
-main (int argc, char *argv[])
+GSList*
+shape_arabic (GSList* text_slist)
 {
-   FILE *fl;
-   gchar buff[1024];
+   gchar* buff;
    glong len;
+   gint i;
+   GSList* new_slist = NULL;
 
-   if (!argv[1])
+   for(i=0;i<g_slist_length(text_slist);i++)
    {
-      fprintf (stderr, "You didn't supply a file\n");
-      return 1;
-   }
-
-   fl = fopen (argv[1], "r");
-   if (!fl)
-   {
-      fprintf (stderr, "Can't open file\n");
-      return 1;
-   }
-
-   while (fgets (buff, 1024, fl))
-   {
+      gchar* buff = g_slist_nth_data(text_slist, i);
       gint y;
       gunichar *ucs = NULL, *_ucs = NULL;
       gchar *utf = NULL;
       gint x = 0;		//strlen (buff);
+
+      if( buff == NULL || *buff == '\0' ) {
+        new_slist = g_slist_append(new_slist, buff);
+        continue;
+      }
 
       ucs = g_utf8_to_ucs4_fast (buff, -1, &len);
       _ucs = g_malloc (sizeof (gunichar) * (len + 1));
@@ -291,12 +287,9 @@ fprintf(stderr, "%s\n", sz);
     g_free (ucs);
     utf = g_ucs4_to_utf8 (_ucs, len, NULL, NULL, NULL);
 
-    printf ("%s", utf);
     g_free (_ucs);
-    g_free (utf);
+    new_slist = g_slist_append(new_slist, utf);
    }
 
-   fclose (fl);
-
-   return 0;
+   return new_slist;
 }

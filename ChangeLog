@@ -5,6 +5,11 @@
 	* src/main.c: Add --title option.
 	* src/main.c: Accept stdin for input.
 	* configure.in: Bump up to 0.0.2
+	* src/main.c: Add HKSCS auto-detect code.
+	* src/main.c: Use clip instead of eoclip
+	* src/Makefile.am: Add shape_arabic.c from arabeyes.org
+	* src/util.h: Add shape_arabic() prototype
+	* src/main.c: Add shape_arabic mode
 
 2004-04-05  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
