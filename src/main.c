@@ -29,6 +29,8 @@
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
 
+#include "mail.h"
+
 static gboolean show_version = FALSE;
 static gboolean parse_mail = FALSE;
 char const *output_filename = NULL;
@@ -280,6 +282,7 @@ int main(int argc, char** argv) {
   gchar **popt_args;
   gchar *filename = NULL;
   GSList* new_slist = NULL; /* use for temporary */
+  gchar* page_title = NULL;
 
   locale = setlocale(LC_ALL, "");
 
@@ -389,6 +392,7 @@ int main(int argc, char** argv) {
   }
 
   /* Japanese codeset auto detection - iso-2022-jp */
+  /* Just check the 8th bit for simplify */
   if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
     gboolean is_2022jp = TRUE;
     for(i=0;i<g_slist_length(text_slist);i++) {
@@ -436,6 +440,18 @@ int main(int argc, char** argv) {
       g_slist_free(text_slist);
       text_slist = convtext_slist;
     }
+  }
+
+  /* Get Page Title */
+  if( parse_mail ) {
+    page_title = get_subject(text_slist);
+  } else {
+    page_title = filename;
+  }
+
+  /* Cut Headers */
+  if( parse_mail ) {
+    text_slist = cut_headers(text_slist);
   }
 
   /* UTF-8 check */
@@ -544,7 +560,7 @@ int main(int argc, char** argv) {
       gnome_print_show(context, text);
     }
     nthline += j;
-    draw_pageframe(context, face, xoffset, pagew, pageh, filename, i+1, pages);
+    draw_pageframe(context, face, xoffset, pagew, pageh, page_title, i+1, pages);
     gnome_print_showpage(context);
   }
 
