@@ -74,7 +74,7 @@ u2ps_show_version()
 /* g_str_is_eucjp()
    if text is eucjp --> returns TRUE
    if text is ascii --> returns TRUE
-   if text is UTF-8 --> returns FALSE
+   if text is UTF-8,etc --> returns FALSE
 */
 gboolean
 g_str_is_eucjp(gchar* str) {
@@ -101,6 +101,47 @@ g_str_is_eucjp(gchar* str) {
         return FALSE;
       }
       shift = 0;
+    }
+  }
+
+  return TRUE;
+}
+
+/* g_str_is_sjis()
+   if text is sjis --> returns TRUE
+   if text is ascii --> returns TRUE
+   if text is UTF-8,etc --> returns FALSE
+*/
+gboolean
+g_str_is_sjis(gchar* str) {
+  gint shift = 0;
+  gint i;
+  guchar* text = (guchar*)str;
+
+  if( text == NULL || *text == '\0' )
+    return TRUE;
+
+  for(i=0;i<strlen(text);i++) {
+    guchar c = text[i];
+    if( shift == 0 ) {
+      if( ((c>=0x81 && c<=0x9F) || ( c>=0xE0 && c<=0xEF)) ) {
+        shift = 1;
+        continue;
+      }
+      if( c & 0x80 ) {
+        if( c>=0xA1 && c<=0xDF ) {
+          continue;
+        } else {
+          return FALSE;
+        }
+      }
+    }
+    if( shift == 1 ) {
+      if( (c>=0x40 && c<=0x7E) || (c>=0x80 && c<=0xFC) ) {
+        shift = 0;
+      } else {
+        return FALSE;
+      }
     }
   }
 
@@ -328,6 +369,19 @@ int main(int argc, char** argv) {
     }
     if( is_eucjp ) {
       input_encoding = "EUC-JP";
+    }
+  }
+
+  /* Japanese codeset auto detection - SJIS */
+  if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
+    gboolean is_sjis = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_sjis = g_str_is_sjis(tmpbuf)) )
+        break;
+    }
+    if( is_sjis ) {
+      input_encoding = "SJIS";
     }
   }
 

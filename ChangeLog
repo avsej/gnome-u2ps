@@ -3,6 +3,7 @@
 	* src/main.c: Fix for very long line.
 	* src/main.c: page font fix
 	* src/main.c: Add EUC-JP auto detection
+	* src/main.c: Add SJIS auto detection
 
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
