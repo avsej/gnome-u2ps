@@ -1,4 +1,4 @@
-# u2ps ja.po
+# u2ps ko.po
 # Copyright (C) 2004 Yukihiro Nakai
 # This file is distributed under the same license as the u2ps package.
 # Yukihiro Nakai <nakai@gnome.gr.jp>, 2004.
@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-03-22 19:09+0900\n"
-"PO-Revision-Date: 2004-03-21 23:00+0900\n"
+"PO-Revision-Date: 2004-03-22 19:09+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "MIME-Version: 1.0\n"
@@ -17,63 +17,63 @@ msgstr ""
 
 #: src/main.c:40
 msgid "Display u2ps version"
-msgstr "u2psのバージョンを表示します"
+msgstr ""
 
 #: src/main.c:42
 msgid "Specify output filename"
-msgstr "入力するファイル名の指定"
+msgstr ""
 
 #: src/main.c:42
 msgid "FILE"
-msgstr "ファイル"
+msgstr ""
 
 #: src/main.c:44
 msgid "Encoding of the input"
-msgstr "入力のエンコーディング"
+msgstr ""
 
 #: src/main.c:44
 msgid "ENCODING"
-msgstr "エンコーディング"
+msgstr ""
 
 #: src/main.c:46
 msgid "Specify libgnomeprint font family name"
-msgstr "libgnomeprintのフォントファミリ名の指定"
+msgstr ""
 
 #: src/main.c:46
 msgid "FAMILYNAME"
-msgstr "ファミリ名"
+msgstr ""
 
 #: src/main.c:69
 #, c-format
 msgid "%s version is %s\n"
-msgstr "%s: バージョン %s\n"
+msgstr ""
 
 #: src/main.c:162
 #, c-format
 msgid "%d/%d Pages"
-msgstr "%d/%d ページ"
+msgstr "%d/%d 페이지"
 
 #: src/main.c:173
 msgid "%B %e %Y %H:%M"
-msgstr "%B%e日 %H:%M"
+msgstr ""
 
 #: src/main.c:234
 msgid "Specify filename for input.\n"
-msgstr "入力するファイル名を指定してください。\n"
+msgstr ""
 
 #: src/main.c:240
 msgid "Input and output file is same.\n"
-msgstr "入力と出力のファイルが同一です。\n"
+msgstr ""
 
 #: src/main.c:253
 #, c-format
 msgid "File is not found: %s\n"
-msgstr "ファイルが見つかりません: %s\n"
+msgstr ""
 
 #: src/main.c:274
 msgid "Falling back to UTF-8\n"
-msgstr "UTF-8にフォールバックします\n"
+msgstr ""
 
 #: src/main.c:296
 msgid "File is not valid UTF-8\n"
-msgstr "ファイルが正しいUTF-8ではありません\n"
+msgstr ""

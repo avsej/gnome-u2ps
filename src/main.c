@@ -30,11 +30,22 @@
 #include <libgnome/libgnome.h>
 
 static int show_version = FALSE;
+char const *output_filename = NULL;
+char const *input_encoding = NULL;
+char const *familyname = NULL; /* Fallback set */
+
+#define DEFAULT_FAMILY_NAME "Kochi Gothic"
 
 static struct poptOption const
 u2ps_popt_options[] = {
   { "version", 'v', POPT_ARG_NONE, &show_version, 0,
-    "Display u2ps version", NULL },
+    N_("Display u2ps version"), NULL },
+  { "output", 'o', POPT_ARG_STRING, &output_filename, 0,
+    N_("Specify output filename"), N_("FILE")},
+  { "encoding", 'X', POPT_ARG_STRING, &input_encoding, 0,
+    N_("Encoding of the input"), N_("ENCODING") },
+  { "gpfamily", '\0', POPT_ARG_STRING, &familyname, 0,
+    N_("Specify libgnomeprint font family name"), N_("FAMILYNAME") },
   POPT_AUTOHELP
   POPT_TABLEEND
 };
@@ -183,7 +194,6 @@ int main(int argc, char** argv) {
   gint i=0;
   gint maxlines = 0;
   guint nthline = 0;
-  const gchar* familyname = "Kochi Gothic"; /* Fallback set */
   const gchar* locale;
   GValue value = { 0, };
   poptContext ctx;
@@ -227,11 +237,9 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  for(i=0;localefont[i].prefix != NULL;i++) {
-    if( !strncmp(locale, localefont[i].prefix, strlen(localefont[i].prefix)) ) {
-      familyname = localefont[i].fontname;
-      break;
-    }
+  /* Detect inputfile overwrite mistake */
+  if( output_filename && !strcmp(output_filename, filename) ) {
+    g_error(_("Input and output file is same.\n"));
   }
 
   /* Read the Input Text */
@@ -247,6 +255,34 @@ int main(int argc, char** argv) {
   }
   fclose(fp);
 
+  /* Encoding option */
+  if( input_encoding ) {
+    gsize bytes_read, bytes_written;
+    GError *conv_error = NULL;
+    GSList* convtext_slist = NULL;
+
+    for(i=0;i<g_slist_length(text_slist);i++) {
+       gchar* conv_before = g_slist_nth_data(text_slist, i);
+       gchar* conv_after = g_convert(conv_before, -1, "UTF-8", input_encoding, &bytes_read, &bytes_written, &conv_error);
+       if( conv_error ) {
+         g_print("%s\n", conv_error->message);
+         g_print(_("Falling back to UTF-8\n"));
+         break; /* Falling back to UTF-8 */
+       }
+       convtext_slist = g_slist_append(convtext_slist, conv_after);
+    }
+
+    if( conv_error ) {
+      /* Let's forget the trial of conversion */
+      g_error_free(conv_error);
+      g_slist_free(convtext_slist);
+    } else {
+      /* convtext_slist is now text_slist */
+      g_slist_free(text_slist);
+      text_slist = convtext_slist;
+    }
+  }
+
   /* UTF-8 check */
   for(i=0;i<g_slist_length(text_slist);i++) {
     const gchar* end;
@@ -256,13 +292,29 @@ int main(int argc, char** argv) {
     }
   }
 
+  /* Replace tab to 8 spaces */
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+    if( strstr(tmpbuf, "\t") ) {
+      gchar** tmpbufpp = g_strsplit(tmpbuf, "\t", -1);
+      gchar* newbuf = g_strjoinv("        ", tmpbufpp);
+      g_strfreev(tmpbufpp);
+      g_slist_nth(text_slist, i)->data = newbuf;
+      g_free(tmpbuf);
+    }
+  }
+
   /* Prepare Printing */
   job = gnome_print_job_new(NULL);
   context = gnome_print_job_get_context(job);
   config = gnome_print_job_get_config(job);
 
   gnome_print_config_set(config, "Printer", "GENERIC");
-  gnome_print_job_print_to_file(job, "output.ps");
+
+  if( output_filename ) {
+    gnome_print_job_print_to_file(job, (gchar*)output_filename);
+  }
+
   gnome_print_config_set(config, GNOME_PRINT_KEY_PAPER_SIZE, "A4");
   gnome_print_config_set(config, GNOME_PRINT_KEY_PAGE_ORIENTATION, "R0");
   gnome_print_config_set(config, GNOME_PRINT_KEY_PAPER_ORIENTATION, "R180");
@@ -272,7 +324,28 @@ int main(int argc, char** argv) {
 
   gnome_print_beginpage(context, "1");
 
-  face = gnome_font_face_find_closest_from_weight_slant(familyname, GNOME_FONT_MEDIUM, FALSE);
+  /* Font Face from familyname */
+  if( familyname ) {
+    face = gnome_font_face_find_closest_from_weight_slant(familyname, GNOME_FONT_MEDIUM, FALSE);
+  }
+
+  /* Font Face 1st fallback - Use language default */
+  if( !face ) {
+    for(i=0;localefont[i].prefix != NULL;i++) {
+      if( !strncmp(locale, localefont[i].prefix, strlen(localefont[i].prefix)) ) {
+        familyname = localefont[i].fontname;
+        face = gnome_font_face_find_closest_from_weight_slant(familyname, GNOME_FONT_MEDIUM, FALSE);
+        break;
+      }
+    }
+  }
+
+  /* Font Face 2nd fallback - Use DEFAULT_FAMILY_NAME */
+  if( !face ) {
+    face = gnome_font_face_find_closest_from_weight_slant(DEFAULT_FAMILY_NAME, GNOME_FONT_MEDIUM, FALSE);
+  }
+
+  /* Abort when any fallback doesn't make sense */
   g_assert(face != NULL);
 
   /* Text Font */

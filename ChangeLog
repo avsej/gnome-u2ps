@@ -1,6 +1,12 @@
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Header is gray
+	* src/main.c: Add output option. (Default is a printer)
+	* src/main.c: Replace tab to 8 spaces.
+	* src/main.c: Add encoding support.
+	* src/main.c: Detect the input file overwrite mistake.
+	* src/main.c: Add font fallback.
+	* src/main.c: Add gpfamily option to support users' favorite.
 
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
