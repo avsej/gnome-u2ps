@@ -614,10 +614,6 @@ int main(int argc, char** argv) {
   GnomeVFSResult vfs_result = GNOME_VFS_OK;
 
   locale = setlocale(LC_ALL, "");
-
-  /* Just a workaround for
-     https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=126714
-   */
   locale = g_strdup(locale);
 
 #ifdef ENABLE_NLS
