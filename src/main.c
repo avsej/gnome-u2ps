@@ -27,6 +27,7 @@
 #include <time.h>
 #include <libgen.h>
 #include <zlib.h>
+#include <bzlib.h>
 #include <libgnomeprint/gnome-print.h>
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
@@ -654,16 +655,31 @@ int main(int argc, char** argv) {
     g_error(_("File is not found: %s\n"), filename);
   }
 
-  /* Support gzip file for input */
   memset(buf, 0, sizeof(buf));
   fgets(buf, 5, fp);
-  if( !strcmp(buf, "\x1f\x8b\x08\x08") ) {
+
+  /* Support bzip2 file for input */
+  if( !strncmp(buf, "BZh", 3) ) {
+   fclose(fp);
+   BZFILE* bzfp = BZ2_bzopen(filename, "r");
+   while(BZ2_bzread(bzfp, buf, sizeof(buf)) > 0 ) {
+     g_print("%s", buf);
+     memset(buf, 0, sizeof(buf));
+   }
+   BZ2_bzclose(bzfp);
+   fflush(stdout);
+exit(0);
+  }
+
+  /* Support gzip file for input */
+  else if( !strcmp(buf, "\x1f\x8b") ) {
     if( fp != stdin ) {
       gzFile gzfp = NULL;
       fclose(fp);
       gzfp = gzopen(filename, "r");
       while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
         text_slist = g_slist_append(text_slist, g_strdup(buf));
+        //memset(buf, 0, sizeof(buf));
       }
       gzclose(gzfp);
     } else {
@@ -686,6 +702,7 @@ int main(int argc, char** argv) {
         }
         memcpy(memdat+current_size, buf, size);
         current_size += size;
+        //memset(buf, 0, sizeof(buf));
       }
 
       /* Just to get unique number.
