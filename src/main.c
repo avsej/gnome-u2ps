@@ -199,6 +199,7 @@ int main(int argc, char** argv) {
   poptContext ctx;
   gchar **popt_args;
   gchar *filename = NULL;
+  GSList* new_slist = NULL; /* use for temporary */
 
   locale = setlocale(LC_ALL, "");
 
@@ -248,12 +249,31 @@ int main(int argc, char** argv) {
     g_error(_("File is not found: %s\n"), filename);
   }
   while(fgets(buf, 1024, fp) > 0 ) {
-    gchar* tmpbuf = g_strdup(buf);
-    if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
-      tmpbuf[strlen(tmpbuf)-1] = '\0';
-    text_slist = g_slist_append(text_slist, tmpbuf);
+    text_slist = g_slist_append(text_slist, g_strdup(buf));
   }
   fclose(fp);
+
+  /* Concatenate long line */
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+    if( tmpbuf[strlen(tmpbuf)-1] != '\n' ) {
+      while(++i<g_slist_length(text_slist)) {
+        tmpbuf = g_strconcat(tmpbuf, g_slist_nth_data(text_slist, i), NULL);
+        if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
+          break; 
+      }
+    }
+    new_slist = g_slist_append(new_slist, tmpbuf);
+  }
+  g_slist_free(text_slist);
+  text_slist = new_slist;
+
+  /* Cut the newline character */
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+    if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
+      tmpbuf[strlen(tmpbuf)-1] = '\0';
+  }
 
   /* Encoding option */
   if( input_encoding ) {
@@ -350,7 +370,7 @@ int main(int argc, char** argv) {
 
   /* Text Font */
   font = gnome_font_face_get_font_default(face, 12);
-  g_assert(face != NULL);
+  g_assert(font != NULL);
   gnome_print_setfont(context, font);
   /* Text Font Height */
   fontheight = gnome_font_get_ascender(font) + gnome_font_get_descender(font);
@@ -374,6 +394,7 @@ int main(int argc, char** argv) {
     if( i != 0) {
       gchar* pagestr = g_strdup_printf("%d", i/2+1);
       gnome_print_beginpage(context, pagestr);
+      gnome_print_setfont(context, font); /* setfont again after beginpage */
       g_free(pagestr);
     }
 

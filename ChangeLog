@@ -1,3 +1,8 @@
+2004-03-23  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* src/main.c: Fix for very long line.
+	* src/main.c: page font fix
+
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Header is gray
@@ -8,7 +13,7 @@
 	* src/main.c: Add font fallback.
 	* src/main.c: Add gpfamily option to support users' favorite.
 	* configure.in: Add Korean(ko)
-	* src/main.c: Default family is now Luxi Sans.
+	* src/main.c: Default family is now 'Luxi Sans'.
 
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-03-22 19:09+0900\n"
+"POT-Creation-Date: 2004-03-22 19:51+0900\n"
 "PO-Revision-Date: 2004-03-21 23:00+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -15,65 +15,65 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:40
+#: src/main.c:42
 msgid "Display u2ps version"
 msgstr "u2psのバージョンを表示します"
 
-#: src/main.c:42
+#: src/main.c:44
 msgid "Specify output filename"
 msgstr "入力するファイル名の指定"
 
-#: src/main.c:42
+#: src/main.c:44
 msgid "FILE"
 msgstr "ファイル"
 
-#: src/main.c:44
+#: src/main.c:46
 msgid "Encoding of the input"
 msgstr "入力のエンコーディング"
 
-#: src/main.c:44
+#: src/main.c:46
 msgid "ENCODING"
 msgstr "エンコーディング"
 
-#: src/main.c:46
+#: src/main.c:48
 msgid "Specify libgnomeprint font family name"
 msgstr "libgnomeprintのフォントファミリ名の指定"
 
-#: src/main.c:46
+#: src/main.c:48
 msgid "FAMILYNAME"
 msgstr "ファミリ名"
 
-#: src/main.c:69
+#: src/main.c:71
 #, c-format
 msgid "%s version is %s\n"
 msgstr "%s: バージョン %s\n"
 
-#: src/main.c:162
+#: src/main.c:164
 #, c-format
 msgid "%d/%d Pages"
 msgstr "%d/%d ページ"
 
-#: src/main.c:173
+#: src/main.c:175
 msgid "%B %e %Y %H:%M"
 msgstr "%B%e日 %H:%M"
 
-#: src/main.c:234
+#: src/main.c:236
 msgid "Specify filename for input.\n"
 msgstr "入力するファイル名を指定してください。\n"
 
-#: src/main.c:240
+#: src/main.c:242
 msgid "Input and output file is same.\n"
 msgstr "入力と出力のファイルが同一です。\n"
 
-#: src/main.c:253
+#: src/main.c:248
 #, c-format
 msgid "File is not found: %s\n"
 msgstr "ファイルが見つかりません: %s\n"
 
-#: src/main.c:274
+#: src/main.c:269
 msgid "Falling back to UTF-8\n"
 msgstr "UTF-8にフォールバックします\n"
 
-#: src/main.c:296
+#: src/main.c:291
 msgid "File is not valid UTF-8\n"
 msgstr "ファイルが正しいUTF-8ではありません\n"
