@@ -11,6 +11,7 @@
 	* src/util.h, util.c: tab2spaces function
 	* src/main.c: Use tab2spaces func
 	* src/mail.c: Replace tab in the subject
+	* src/mail.c: Recurse base64 decode
 
 2004-03-31  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

@@ -44,7 +44,7 @@ static const gchar* worthy_headers[] = {
 
 /* Returns UTF-8 str */
 static gchar*
-subject_decode(guchar* subject) {
+base64_decode(guchar* subject) {
   const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   guchar* cursor;
   guchar* result = g_strdup("");
@@ -226,7 +226,7 @@ get_subject(GSList* mail_slist)
     }
 
     if( !g_ascii_strncasecmp(buf, "subject:", strlen("subject:")) ) {
-      gchar* decoded = subject_decode(buf + strlen("subject: "));
+      gchar* decoded = base64_decode(buf + strlen("subject: "));
       sbj_start = TRUE;
       tmpbuf = g_strconcat(subject, decoded, NULL);
       g_free(subject);
@@ -237,7 +237,7 @@ get_subject(GSList* mail_slist)
     }
     if( sbj_start ) {
       if( *buf == '\t' || *buf == ' ' ) { /* 2nd line subject */
-        gchar* decoded = subject_decode(buf+1);
+        gchar* decoded = base64_decode(buf+1);
         if( subject[strlen(subject)-1] == '\n' ) {
           subject[strlen(subject)-1] = '\0';
         }
@@ -257,6 +257,18 @@ get_subject(GSList* mail_slist)
     }
   }
 
+  /* If there is other base64 part, recurse */
+  while( strstr(subject, "=?") ) {
+    gchar* newsbj = base64_decode(subject);
+    if( !strcmp(newsbj, subject) ) {
+      g_free(newsbj);
+      break;
+    }
+    g_free(subject);
+    subject = newsbj;
+  }
+
+  /* Tab to 8 spaces */
   tmpbuf = tab2spaces(subject);
   g_free(subject);
   subject = tmpbuf;
