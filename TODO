@@ -1,0 +1,14 @@
+TODO:
+
+- Relative coordinate to draw lines/texts
+- Arabic support
+- Thai support
+- Other langs
+- Other complex hyphenation
+- Decode  the encoded mails
+- Stress test with tons of mails
+- Direct PDF support with libgnomeprint
+
+- a2ps landscape, portrait mode
+- a2ps page layout
+- More a2ps options to replace it

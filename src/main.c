@@ -332,6 +332,7 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   gdouble fontheight = 0;
   gdouble lineheight = 0;
   gdouble titlew = 0;
+  gdouble datew = 0;
   GnomeFont* font;
   gchar* pagenum;
   gdouble pagenumw;
@@ -354,18 +355,50 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   lineheight = fontheight + 5;
 
   /* Header Date */
-  gnome_print_moveto(context, xoffset +30 +10, pageh - 55.0);
-  gnome_print_show(context, datestr);
+  datew = gnome_font_get_width_utf8(font, datestr);
+  if( !parse_mail ) {
+    gnome_print_moveto(context, xoffset +30 +10, pageh - 55.0);
+    gnome_print_show(context, datestr);
+  }
 
-  titlew = gnome_font_get_width_utf8(font, title);
-  gnome_print_moveto(context, xoffset +30 + (pagew-30)/2 - titlew/2, pageh - 55.0);
-  gnome_print_show(context, title);
-
+  /* Header Page */
   pagenum = g_strdup_printf(_("%d/%d Pages"), nthpage, maxpage);
   pagenumw = gnome_font_get_width_utf8(font, pagenum);
   gnome_print_moveto(context, xoffset +30 + (pagew-30) - pagenumw - 30, pageh - 55.0);
   gnome_print_show(context, pagenum);
   g_free(pagenum);
+
+  /* Header Title */
+  titlew = gnome_font_get_width_utf8(font, title);
+  if( parse_mail ) {
+    //gnome_print_clip(context);
+    gnome_print_newpath(context);
+    gnome_print_moveto(context, xoffset, 0);
+    gnome_print_lineto(context, xoffset +(pagew-30) -pagenumw ,0);
+    gnome_print_lineto(context, xoffset +(pagew-30) -pagenumw ,pageh);
+    gnome_print_lineto(context, xoffset, pageh);
+    gnome_print_closepath(context);
+    gnome_print_eoclip(context);
+
+    gnome_print_moveto(context, xoffset +30 +10 , pageh - 55.0);
+  } else {
+    gdouble xoffset1;
+    gdouble xoffset2;
+
+    gnome_print_newpath(context);
+    gnome_print_moveto(context, xoffset +30 +10 +datew +10, 0);
+    gnome_print_lineto(context, xoffset +30 +10 +(pagew-30) -pagenumw -60 ,0);
+    gnome_print_lineto(context, xoffset +30 +10 +(pagew-30) -pagenumw -60 ,pageh);
+    gnome_print_lineto(context, xoffset +30 +10 +datew +10, pageh);
+    gnome_print_closepath(context);
+    gnome_print_eoclip(context);
+
+    xoffset1 = xoffset +30 +(pagew-30)/2 - titlew/2;
+    xoffset2 = xoffset +30 +10 +datew +10;
+
+    gnome_print_moveto(context, MAX(xoffset1, xoffset2), pageh - 55.0);
+  }
+  gnome_print_show(context, title);
 }
 
 void
