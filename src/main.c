@@ -101,13 +101,13 @@ g_str_is_big5(gchar* str) {
 
   for(i=0;i<strlen(text);i++) {
     if( shift == 0 && (text[i] & 0x80) ) {
-      if( (text[i] < 0xA1 && text[i] > 0xC6) || (text[i] < 0xC9 && text[i] > 0xF9) ) {
+      if( text[i] < 0xA1 || (text[i] > 0xC6 && text[i] < 0xC9) || text[i] > 0xF9) {
         /* Outside of Big5 mapping area */
         return FALSE;
       }
       shift++;
     } else { /* shift = 1 */
-      if( (text[i] < 0x40 && text[i] > 0x7E) || (text[i] < 0xA1 && text[i] > 0xFE) ) {
+      if( text[i] < 0x40 || (text[i] > 0x7E && text[i] < 0xA1) || text[i] > 0xFE) {
         /* Outside of Big5 mapping 2nd byte condition */
         return FALSE;
       }
@@ -211,7 +211,7 @@ g_str_is_eucjp(gchar* str) {
 
   for(i=0;i<strlen(text);i++) {
     if( shift == 1 ) {
-      if( text[i] < 0xA1 && text[i] > 0xFE ) {
+      if( text[i] < 0xA1 || text[i] > 0xFE ) {
         return FALSE;
       } else {
         shift = 0;
@@ -219,11 +219,11 @@ g_str_is_eucjp(gchar* str) {
       }
     }
     if( text[i] & 0x80 ) {
-      if( text[i] < 0xA1 && text[i] > 0xFE ) {
+      if( text[i] < 0xA1 || text[i] > 0xFE ) {
         /* Outside of EUC-JP mapping area */
         return FALSE;
       }
-      shift++;
+      shift = 1;
     }
   }
 
@@ -552,6 +552,7 @@ int main(int argc, char** argv) {
     gboolean is_eucjp = TRUE;
     for(i=0;i<g_slist_length(text_slist);i++) {
       gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+g_print("eucjp: %s\n", g_str_is_eucjp(tmpbuf) ? "TRUE" : "FALSE");
       if( !(is_eucjp = g_str_is_eucjp(tmpbuf)) )
         break;
     }
@@ -573,7 +574,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  //g_print("input_encoding: \"%s\"\n", input_encoding);
+  g_print("input_encoding: \"%s\"\n", input_encoding);
 
   /* Encoding option */
   if( input_encoding ) {

@@ -1,3 +1,7 @@
+2004-04-02  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* src/main.c: Fix eucjp and Big5 detect logic
+
 2004-04-01  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Add Big5 detection code.
