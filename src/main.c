@@ -37,6 +37,7 @@
 
 static gboolean show_version = FALSE;
 static gboolean parse_mail = FALSE;
+static gboolean force_text = FALSE;
 char const *output_filename = NULL;
 char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
@@ -63,6 +64,8 @@ u2ps_popt_options[] = {
     N_("Parse input file as mail"), NULL },
   { "title", 't', POPT_ARG_STRING, &content_title, 0,
     N_("Set the content title"), N_("TITLE") },
+  { "force-text", '\0', POPT_ARG_NONE, &force_text, 0,
+    N_("Disable gzip/bzip2 autodetection"), NULL },
   POPT_AUTOHELP
   POPT_TABLEEND
 };
@@ -659,7 +662,7 @@ int main(int argc, char** argv) {
   fgets(buf, 4, fp);
 
   /* Support bzip2 file for input */
-  if( !strncmp(buf, "BZh", 3) ) {
+  if( !force_text && !strncmp(buf, "BZh", 3) ) {
     int bzerror = 0;
     BZFILE* bzfp = NULL;
 
@@ -705,7 +708,7 @@ int main(int argc, char** argv) {
   }
 
   /* Support gzip file for input */
-  else if( !strncmp(buf, "\x1f\x8b", 2) ) {
+  else if( !force_text && !strncmp(buf, "\x1f\x8b", 2) ) {
     if( fp != stdin ) {
       gzFile gzfp = NULL;
       fclose(fp);
