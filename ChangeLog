@@ -2,6 +2,8 @@
 
 	* configure.in: 0.0.4
 	* src/mail.c: mimetype is case-insensitive
+	* src/util.c: debug_dump() should pad with zero.
+	* src/main.c: gzip file support
 
 2004-04-30  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

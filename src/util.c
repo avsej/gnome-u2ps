@@ -183,7 +183,7 @@ debug_dump(guchar* str)
     if( i == 8 )
       g_print(" ");
 
-    g_print("%X", str[i]);
+    g_print("%02X", str[i]);
   }
 
   g_print("\n");

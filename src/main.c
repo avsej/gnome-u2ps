@@ -26,6 +26,7 @@
 #include <locale.h>
 #include <time.h>
 #include <libgen.h>
+#include <zlib.h>
 #include <libgnomeprint/gnome-print.h>
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
@@ -652,10 +653,25 @@ int main(int argc, char** argv) {
   if( !fp ) {
     g_error(_("File is not found: %s\n"), filename);
   }
-  while(fgets(buf, 1024, fp) > 0 ) {
-    text_slist = g_slist_append(text_slist, g_strdup(buf));
+
+  /* Support gzip file for input */
+  memset(buf, 0, sizeof(buf));
+  fgets(buf, 5, fp);
+  if( fp != stdin && !strcmp(buf, "\x1f\x8b\x08\x08") ) {
+    gzFile gzfp = NULL;
+    fclose(fp);
+    gzfp = gzopen(filename, "r");
+    while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
+      text_slist = g_slist_append(text_slist, g_strdup(buf));
+    }
+    gzclose(gzfp);
+  } else {
+    fseek(fp, 0, SEEK_SET);
+    while(fgets(buf, sizeof(buf), fp) > 0 ) {
+      text_slist = g_slist_append(text_slist, g_strdup(buf));
+    }
+    fclose(fp);
   }
-  fclose(fp);
 
   /* Concatenate long line */
   for(i=0;i<g_slist_length(text_slist);i++) {
