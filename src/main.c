@@ -29,7 +29,8 @@
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
 
-static int show_version = FALSE;
+static gboolean show_version = FALSE;
+static gboolean parse_mail = FALSE;
 char const *output_filename = NULL;
 char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
@@ -46,6 +47,8 @@ u2ps_popt_options[] = {
     N_("Encoding of the input"), N_("ENCODING") },
   { "gpfamily", '\0', POPT_ARG_STRING, &familyname, 0,
     N_("Specify libgnomeprint font family name"), N_("FAMILYNAME") },
+  { "mail", '\0', POPT_ARG_NONE, &parse_mail, 0,
+    N_("Parse input file as mail"), NULL },
   POPT_AUTOHELP
   POPT_TABLEEND
 };
@@ -382,6 +385,26 @@ int main(int argc, char** argv) {
     }
     if( is_sjis ) {
       input_encoding = "SJIS";
+    }
+  }
+
+  /* Japanese codeset auto detection - iso-2022-jp */
+  if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
+    gboolean is_2022jp = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      gint j;
+      for(j=0;j<strlen(tmpbuf);j++) {
+        if( tmpbuf[j] & 0x80 ) {
+          is_2022jp = FALSE;
+          break;
+        }
+      }
+      if( !is_2022jp )
+        break;
+    }
+    if( is_2022jp ) {
+      input_encoding = "ISO-2022-JP";
     }
   }
 
