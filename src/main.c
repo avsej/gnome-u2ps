@@ -31,6 +31,7 @@
 #include <libgnomeprint/gnome-print.h>
 #include <libgnomeprint/gnome-print-job.h>
 #include <libgnome/libgnome.h>
+#include <libgnomevfs/gnome-vfs.h>
 
 #include "mail.h"
 #include "util.h"
@@ -608,6 +609,9 @@ int main(int argc, char** argv) {
   gchar *filename = NULL;
   GSList* new_slist = NULL; /* use for temporary */
   gchar* page_title = NULL;
+  GnomeVFSHandle* vfs_handle = NULL;
+  GnomeVFSFileSize vfs_read = 0;
+  GnomeVFSResult vfs_result = GNOME_VFS_OK;
 
   locale = setlocale(LC_ALL, "");
 
@@ -654,165 +658,183 @@ int main(int argc, char** argv) {
   if( !fp ) {
     fp = fopen(filename, "r");
   }
+  /* Try to handle it through gnome-vfs */
   if( !fp ) {
+    if( !gnome_vfs_init() ) {
+      g_error(_("Could not initialize GnomeVFS"));
+    }
+    vfs_result = gnome_vfs_open(&vfs_handle, filename, GNOME_VFS_OPEN_READ);
+  }
+  if( !fp && vfs_result != GNOME_VFS_OK ) {
     g_error(_("File is not found: %s\n"), filename);
   }
 
-  memset(buf, 0, sizeof(buf));
-  fgets(buf, 4, fp);
-
-  /* Support bzip2 file for input */
-  if( !force_text && !strncmp(buf, "BZh", 3) ) {
-    int bzerror = 0;
-    BZFILE* bzfp = NULL;
-    gchar* tmpname = NULL;
-    FILE* tmpfp = NULL;
-
-    if( fp == stdin ) {
-      tmpname = stdin2file("/tmp/gnome-u2ps-%d.bz2", buf);
-      tmpfp = fopen(tmpname, "r");
-      bzfp = BZ2_bzReadOpen(&bzerror, tmpfp, 0, 0, (void*)NULL, 0);
-    } else {
-      fseek(fp, 0, SEEK_SET);
-      bzfp = BZ2_bzReadOpen(&bzerror, fp, 0, 0, (void*)NULL, 0);
+  if( vfs_handle ) {
+    while(vfs_result == GNOME_VFS_OK) {
+      vfs_result = gnome_vfs_read(vfs_handle, buf, sizeof(buf)-1, &vfs_read);
+      buf[vfs_read] = '\0';
+      text_slist = g_slist_append(text_slist, g_strdup(buf));
     }
+    gnome_vfs_close(vfs_handle);
+    gnome_vfs_shutdown();
+  } else {
 
     memset(buf, 0, sizeof(buf));
-    text_slist = NULL;
-    while(BZ2_bzRead(&bzerror, bzfp, buf, sizeof(buf))> 0 ) {
-      text_slist = g_slist_append(text_slist, g_strndup(buf, sizeof(buf)));
-      memset(buf, 0, sizeof(buf));
-    }
-    BZ2_bzReadClose(&bzerror, bzfp);
+    fgets(buf, 4, fp);
 
-    if( fp == stdin ) {
-      g_free(tmpname);
-      fclose(tmpfp);
-    } else {
-      fclose(fp);
-    }
-
-    /* Cut the line at newline */
-    new_slist = NULL;
-    for(i=0;i<g_slist_length(text_slist);i++) {
-      gchar* text = g_slist_nth_data(text_slist, i);
-      if( strchr(text, '\n') == NULL ) {
-        new_slist = g_slist_append(new_slist, g_strdup(text));
-        continue;
-      } else if( strlen(strchr(text, '\n')) == 1 ) {
-        new_slist = g_slist_append(new_slist, g_strdup(text));
-        continue;
-      } else {
-        gchar* last = NULL;
-        gchar **cursorpp, **strpp;
-        cursorpp = strpp = g_strsplit(text, "\n", -1);
-        while( *cursorpp != NULL ) {
-          new_slist = g_slist_append(new_slist, g_strconcat(*cursorpp, "\n", NULL));
-          cursorpp++;
-        }
-        last = g_slist_last(new_slist)->data;
-        last[strlen(last)-1] = '\0';
-        g_strfreev(strpp);
-        continue;
-      }
-    }
-    g_slist_free(text_slist);
-    text_slist = new_slist;
-  }
-
-  /* Support gzip file for input */
-  else if( !force_text && !strncmp(buf, "\x1f\x8b", 2) ) {
-    if( fp != stdin ) {
-      gzFile gzfp = NULL;
-      fclose(fp);
-      gzfp = gzopen(filename, "r");
-      while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
-        text_slist = g_slist_append(text_slist, g_strdup(buf));
-        //memset(buf, 0, sizeof(buf));
-      }
-      gzclose(gzfp);
-    } else {
-      gzFile gzfp = NULL;
-#if 0
-      size_t memsize = 4096;
-      size_t current_size = 0;
-      size_t size = 0;
-      char* memdat = calloc(memsize, sizeof(char));
-      pid_t uid = 0;
-      mode_t premode = 0;
+    /* Support bzip2 file for input */
+    if( !force_text && !strncmp(buf, "BZh", 3) ) {
+      int bzerror = 0;
+      BZFILE* bzfp = NULL;
       gchar* tmpname = NULL;
-      FILE* outfp = NULL;
+      FILE* tmpfp = NULL;
 
-      memcpy(memdat, buf, 3);
-      current_size = 3;
-      while( (size = fread(buf, sizeof(char), sizeof(buf), fp)) > 0 ) {
-        if( current_size + size > memsize ) {
-          memsize += 4096;
-          memdat = realloc(memdat, memsize);
-        }
-        memcpy(memdat+current_size, buf, size);
-        current_size += size;
-        //memset(buf, 0, sizeof(buf));
-      }
-
-      /* Just to get unique number.
-       *
-       * Linux's /dev/random is not on other platform.
-       */
-      uid = fork();
-
-      if( uid == 0 ) {
-        exit(0);
+      if( fp == stdin ) {
+        tmpname = stdin2file("/tmp/gnome-u2ps-%d.bz2", buf);
+        tmpfp = fopen(tmpname, "r");
+        bzfp = BZ2_bzReadOpen(&bzerror, tmpfp, 0, 0, (void*)NULL, 0);
       } else {
-        int status;
-        wait(&status);
+        fseek(fp, 0, SEEK_SET);
+        bzfp = BZ2_bzReadOpen(&bzerror, fp, 0, 0, (void*)NULL, 0);
       }
 
-      premode = umask(0077);
-      tmpname = g_strdup_printf("/tmp/gnome-u2ps-%d.gz", uid);
-      outfp = fopen(tmpname, "w");
-      fwrite(memdat, sizeof(char), current_size, outfp);
-      fclose(outfp);
-      free(memdat);
-      umask(premode);
+      memset(buf, 0, sizeof(buf));
+      text_slist = NULL;
+      while(BZ2_bzRead(&bzerror, bzfp, buf, sizeof(buf))> 0 ) {
+        text_slist = g_slist_append(text_slist, g_strndup(buf, sizeof(buf)));
+        memset(buf, 0, sizeof(buf));
+      }
+      BZ2_bzReadClose(&bzerror, bzfp);
+
+      if( fp == stdin ) {
+        g_free(tmpname);
+        fclose(tmpfp);
+      } else {
+        fclose(fp);
+      }
+
+      /* Cut the line at newline */
+      new_slist = NULL;
+      for(i=0;i<g_slist_length(text_slist);i++) {
+        gchar* text = g_slist_nth_data(text_slist, i);
+        if( strchr(text, '\n') == NULL ) {
+          new_slist = g_slist_append(new_slist, g_strdup(text));
+          continue;
+        } else if( strlen(strchr(text, '\n')) == 1 ) {
+          new_slist = g_slist_append(new_slist, g_strdup(text));
+          continue;
+        } else {
+          gchar* last = NULL;
+          gchar **cursorpp, **strpp;
+          cursorpp = strpp = g_strsplit(text, "\n", -1);
+          while( *cursorpp != NULL ) {
+            new_slist = g_slist_append(new_slist, g_strconcat(*cursorpp, "\n", NULL));
+            cursorpp++;
+          }
+          last = g_slist_last(new_slist)->data;
+          last[strlen(last)-1] = '\0';
+          g_strfreev(strpp);
+          continue;
+        }
+      }
+      g_slist_free(text_slist);
+      text_slist = new_slist;
+    }
+
+    /* Support gzip file for input */
+    else if( !force_text && !strncmp(buf, "\x1f\x8b", 2) ) {
+      if( fp != stdin ) {
+        gzFile gzfp = NULL;
+        fclose(fp);
+        gzfp = gzopen(filename, "r");
+        while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
+          text_slist = g_slist_append(text_slist, g_strdup(buf));
+          //memset(buf, 0, sizeof(buf));
+        }
+        gzclose(gzfp);
+      } else {
+        gzFile gzfp = NULL;
+#if 0
+        size_t memsize = 4096;
+        size_t current_size = 0;
+        size_t size = 0;
+        char* memdat = calloc(memsize, sizeof(char));
+        pid_t uid = 0;
+        mode_t premode = 0;
+        gchar* tmpname = NULL;
+        FILE* outfp = NULL;
+
+        memcpy(memdat, buf, 3);
+        current_size = 3;
+        while( (size = fread(buf, sizeof(char), sizeof(buf), fp)) > 0 ) {
+          if( current_size + size > memsize ) {
+            memsize += 4096;
+            memdat = realloc(memdat, memsize);
+          }
+          memcpy(memdat+current_size, buf, size);
+          current_size += size;
+          //memset(buf, 0, sizeof(buf));
+        }
+
+        /* Just to get unique number.
+         *
+         * Linux's /dev/random is not on other platform.
+         */
+        uid = fork();
+
+        if( uid == 0 ) {
+          exit(0);
+        } else {
+          int status;
+          wait(&status);
+        }
+
+        premode = umask(0077);
+        tmpname = g_strdup_printf("/tmp/gnome-u2ps-%d.gz", uid);
+        outfp = fopen(tmpname, "w");
+        fwrite(memdat, sizeof(char), current_size, outfp);
+        fclose(outfp);
+        free(memdat);
+        umask(premode);
 #endif
-      gchar* tmpname = stdin2file("/tmp/gnome-u2ps-%d.gz", buf);
+        gchar* tmpname = stdin2file("/tmp/gnome-u2ps-%d.gz", buf);
 
-      gzfp = gzopen(tmpname, "r");
-      while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
-        text_slist = g_slist_append(text_slist, g_strdup(buf));
-      }
-      gzclose(gzfp);
+        gzfp = gzopen(tmpname, "r");
+        while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
+          text_slist = g_slist_append(text_slist, g_strdup(buf));
+        }
+        gzclose(gzfp);
 
-      if( unlink(tmpname) != 0 ) {
-        g_warning("Unlink the temporary file %s failed.\n");
-      }
-      g_free(tmpname);
+        if( unlink(tmpname) != 0 ) {
+          g_warning("Unlink the temporary file %s failed.\n");
+        }
+        g_free(tmpname);
 
 /* zlib's uncompress() doesn't work for me */
 #if 0
-      memdat = realloc(memdat, current_size);
-      uLongf destlen = current_size;
-      char* outmem = calloc(current_size, sizeof(char));
-      int ret = uncompress(outmem, &destlen , (const unsigned char*)memdat, (uLong)current_size);
-      if( ret == Z_MEM_ERROR )
-        g_print("Z_MEM_ERROR\n");
-      else if( ret == Z_DATA_ERROR )
-        g_print("Z_DATA_ERROR\n");
-      else if( ret == Z_BUF_ERROR )
-        g_print("Z_BUF_ERROR\n");
-      else if( ret == Z_OK )
-        g_print("Z_OK\n");
-      g_print("destlen: %d\n", destlen);
-      free(memdat);
+        memdat = realloc(memdat, current_size);
+        uLongf destlen = current_size;
+        char* outmem = calloc(current_size, sizeof(char));
+        int ret = uncompress(outmem, &destlen , (const unsigned char*)memdat, (uLong)current_size);
+        if( ret == Z_MEM_ERROR )
+          g_print("Z_MEM_ERROR\n");
+        else if( ret == Z_DATA_ERROR )
+          g_print("Z_DATA_ERROR\n");
+        else if( ret == Z_BUF_ERROR )
+          g_print("Z_BUF_ERROR\n");
+        else if( ret == Z_OK )
+          g_print("Z_OK\n");
+        g_print("destlen: %d\n", destlen);
+        free(memdat);
 #endif
+      }
+    } else {
+      fseek(fp, 0, SEEK_SET);
+      while(fgets(buf, sizeof(buf), fp) > 0 ) {
+        text_slist = g_slist_append(text_slist, g_strdup(buf));
+      }
+      fclose(fp);
     }
-  } else {
-    fseek(fp, 0, SEEK_SET);
-    while(fgets(buf, sizeof(buf), fp) > 0 ) {
-      text_slist = g_slist_append(text_slist, g_strdup(buf));
-    }
-    fclose(fp);
   }
 
   /* Concatenate long line */
