@@ -38,6 +38,7 @@ static gboolean parse_mail = FALSE;
 char const *output_filename = NULL;
 char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
+char const *content_title = NULL;
 
 #define DEFAULT_FAMILY_NAME "Luxi Sans"
 
@@ -55,6 +56,8 @@ u2ps_popt_options[] = {
     N_("Specify libgnomeprint font family name"), N_("FAMILYNAME") },
   { "mail", '\0', POPT_ARG_NONE, &parse_mail, 0,
     N_("Parse input file as mail"), NULL },
+  { "title", 't', POPT_ARG_STRING, &content_title, 0,
+    N_("Set the content title"), N_("TITLE") },
   POPT_AUTOHELP
   POPT_TABLEEND
 };
@@ -89,8 +92,21 @@ u2ps_show_version()
    Official HKSCS-2001 site:
    http://www.info.gov.hk/digital21/eng/hkscs/introduction.html
 
+   Big5 code mapping:
+    1st byte: 0xA1-0xC6, 0xC9-0xF9
+    2nd byte: 0x40-0x7E, 0xA1-0xFE
+
+   CP950:
+    F9D6-F9FE
+
+   HKSCS part:
+    8840-A0FE, C6A1-C8FE, FA40-FEFE
+     
  */
-/* g_str_is_hkscs() */
+gboolean
+g_str_is_hkscs(gchar* str) {
+  return FALSE;
+}
 
 /* g_str_is_big5()
    if text is Big5  --> returns TRUE
@@ -101,12 +117,22 @@ u2ps_show_version()
     1st byte: 0xA1-0xC6, 0xC9-0xF9
     2nd byte: 0x40-0x7E, 0xA1-0xFE
 
+   (More strict)
+    1st     2nd
+    A1..A2  40..7E,A1..FE
+    A3      40..7E,A1..E0
+    A4..C5  40..7E,A1..FE
+    C6      40..7E
+    C9..F8  40..7E,A1..FE
+    F9      40..7E,A1..D5
+
    ETen extention is not supported yet.
 
    Government charset site:
    http://www.cns11643.gov.tw/web/index.jsp
 
    Nice description of Big5 variations:
+   http://sources.redhat.com/ml/libc-alpha/2000-09/msg00437.html
    http://www.linux.org.tw/mail-archie/cle-devel/cle-devel.200009/msg00100.html
 */
 gboolean
@@ -714,7 +740,9 @@ int main(int argc, char** argv) {
   }
 
   /* Get Page Title */
-  if( parse_mail ) {
+  if( content_title ) {
+    page_title = (gchar*)content_title;
+  } else if( parse_mail ) {
     page_title = get_subject(text_slist);
   } else {
     page_title = basename(filename);
