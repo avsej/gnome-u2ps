@@ -23,6 +23,11 @@
 
 #include "util.h"
 
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 typedef struct _iso2022jp_pair {
   gchar* from;
   gunichar to;
@@ -196,4 +201,56 @@ dump_text_slist(GSList* text_slist) {
   for(i=0;i<g_slist_length(text_slist);i++) {
     g_print("%s\n", g_slist_nth_data(text_slist, i));
   }
+}
+
+/*
+ * filename need to have %d inside.
+ * "/tmp/gnome-u2ps-%d.gz" or something like that.
+ *
+ * Return: filename
+ */
+gchar*
+stdin2file(gchar* filename, const gchar* prestr) {
+  pid_t uid = 0;
+  mode_t premode = 0;
+  FILE* outfp = NULL;
+  gchar* tmpname = NULL;
+  size_t memsize = 4096;
+  size_t current_size = 0;
+  size_t size = 0;
+  char* memdat = calloc(memsize, sizeof(char));
+  char buf[1024];
+
+  current_size = strlen(prestr);
+  memcpy(memdat, prestr, current_size);
+  while( (size = fread(buf, sizeof(char), sizeof(buf), stdin)) > 0 ) {
+    if( current_size + size > memsize ) {
+      memsize += 4096;
+      memdat = realloc(memdat, memsize);
+    }
+    memcpy(memdat+current_size, buf, size);
+    current_size += size;
+  }
+
+  /* Just to get a unique number.
+   *
+   * Linux's /dev/random is not on other platform.
+   */
+  uid = fork();
+  if( uid == 0 ) {
+    exit(0);
+  } else {
+    int status;
+    wait(&status);
+  }
+
+  premode = umask(0077);
+  tmpname = g_strdup_printf(filename, uid);
+  outfp = fopen(tmpname, "w");
+  fwrite(memdat, sizeof(char), current_size, outfp);
+  fclose(outfp);
+  free(memdat);
+  umask(premode);
+
+  return tmpname;
 }

@@ -665,9 +665,18 @@ int main(int argc, char** argv) {
   if( !force_text && !strncmp(buf, "BZh", 3) ) {
     int bzerror = 0;
     BZFILE* bzfp = NULL;
+    gchar* tmpname = NULL;
+    FILE* tmpfp = NULL;
 
-    fseek(fp, 0, SEEK_SET);
-    bzfp = BZ2_bzReadOpen(&bzerror, fp, 0, 0, (void*)NULL, 0);
+    if( fp == stdin ) {
+      tmpname = stdin2file("/tmp/gnome-u2ps-%d.bz2", buf);
+      tmpfp = fopen(tmpname, "r");
+      bzfp = BZ2_bzReadOpen(&bzerror, tmpfp, 0, 0, (void*)NULL, 0);
+    } else {
+      fseek(fp, 0, SEEK_SET);
+      bzfp = BZ2_bzReadOpen(&bzerror, fp, 0, 0, (void*)NULL, 0);
+    }
+
     memset(buf, 0, sizeof(buf));
     text_slist = NULL;
     while(BZ2_bzRead(&bzerror, bzfp, buf, sizeof(buf))> 0 ) {
@@ -675,7 +684,13 @@ int main(int argc, char** argv) {
       memset(buf, 0, sizeof(buf));
     }
     BZ2_bzReadClose(&bzerror, bzfp);
-    fclose(fp);
+
+    if( fp == stdin ) {
+      g_free(tmpname);
+      fclose(tmpfp);
+    } else {
+      fclose(fp);
+    }
 
     /* Cut the line at newline */
     new_slist = NULL;
@@ -703,8 +718,6 @@ int main(int argc, char** argv) {
     }
     g_slist_free(text_slist);
     text_slist = new_slist;
-
-
   }
 
   /* Support gzip file for input */
@@ -719,6 +732,8 @@ int main(int argc, char** argv) {
       }
       gzclose(gzfp);
     } else {
+      gzFile gzfp = NULL;
+#if 0
       size_t memsize = 4096;
       size_t current_size = 0;
       size_t size = 0;
@@ -727,7 +742,6 @@ int main(int argc, char** argv) {
       mode_t premode = 0;
       gchar* tmpname = NULL;
       FILE* outfp = NULL;
-      gzFile gzfp = NULL;
 
       memcpy(memdat, buf, 3);
       current_size = 3;
@@ -761,6 +775,8 @@ int main(int argc, char** argv) {
       fclose(outfp);
       free(memdat);
       umask(premode);
+#endif
+      gchar* tmpname = stdin2file("/tmp/gnome-u2ps-%d.gz", buf);
 
       gzfp = gzopen(tmpname, "r");
       while( gzgets(gzfp, buf, sizeof(buf)) > 0 ) {
@@ -996,10 +1012,10 @@ int main(int argc, char** argv) {
   /* Get Page Title */
   if( content_title ) {
     page_title = (gchar*)content_title;
-  } else if( fp == stdin ) {
-    page_title = "stdin";
   } else if( parse_mail ) {
     page_title = mail->subject;
+  } else if( fp == stdin ) {
+    page_title = "stdin";
   } else {
     page_title = basename(filename);
   }

@@ -34,5 +34,6 @@ void dump_text_slist(GSList* text_slist);
 /* Arabic */
 GSList* shape_arabic(GSList* text_slist);
 GSList* parse_fribidi(GSList* text_slist, GSList** rtl_slist_p);
+gchar* stdin2file(gchar* filename, const gchar* prestr);
 
 #endif /* _UTIL_H */
