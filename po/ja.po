@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-07 20:09+0900\n"
+"POT-Creation-Date: 2004-04-14 19:06+0900\n"
 "PO-Revision-Date: 2004-03-21 23:00+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -15,74 +15,73 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:50
+#: src/main.c:52
 msgid "Display u2ps version"
 msgstr "u2psのバージョンを表示します"
 
-#: src/main.c:52
+#: src/main.c:54
 msgid "Specify output filename"
 msgstr "入力するファイル名の指定"
 
-#: src/main.c:52
+#: src/main.c:54
 msgid "FILE"
 msgstr "ファイル"
 
-#: src/main.c:54
+#: src/main.c:56
 msgid "Encoding of the input"
 msgstr "入力のエンコーディング"
 
-#: src/main.c:54
+#: src/main.c:56
 msgid "ENCODING"
 msgstr "エンコーディング"
 
-#: src/main.c:56
+#: src/main.c:58
 msgid "Specify libgnomeprint font family name"
 msgstr "libgnomeprintのフォントファミリ名の指定"
 
-#: src/main.c:56
+#: src/main.c:58
 msgid "FAMILYNAME"
 msgstr "ファミリ名"
 
-#: src/main.c:58
+#: src/main.c:60
 msgid "Parse input file as mail"
 msgstr "入力をメールとして処理"
 
-#: src/main.c:60
+#: src/main.c:62
 msgid "Set the content title"
 msgstr "内容の題名を設定する"
 
-#: src/main.c:60
+#: src/main.c:62
 msgid "TITLE"
 msgstr "タイトル"
 
-#: src/main.c:84
+#: src/main.c:86
 #, c-format
 msgid "%s version is %s\n"
 msgstr "%s: バージョン %s\n"
 
 #. Header Page
-#: src/main.c:512
+#: src/main.c:518
 #, c-format
 msgid "Page %d/%d"
 msgstr "ページ %d/%d"
 
-#: src/main.c:554
+#: src/main.c:560
 msgid "%B %e %Y %H:%M"
 msgstr "%B%e日 %H:%M"
 
-#: src/main.c:622
+#: src/main.c:628
 msgid "Input and output file is same.\n"
 msgstr "入力と出力のファイルが同一です。\n"
 
-#: src/main.c:630
+#: src/main.c:636
 #, c-format
 msgid "File is not found: %s\n"
 msgstr "ファイルが見つかりません: %s\n"
 
-#: src/main.c:783
-msgid "Falling back to UTF-8\n"
-msgstr "UTF-8にフォールバックします\n"
-
-#: src/main.c:821
+#: src/main.c:846
 msgid "File is not valid UTF-8\n"
 msgstr "ファイルが正しいUTF-8ではありません\n"
+
+#~ msgid "Falling back to UTF-8\n"
+#~ msgstr "UTF-8にフォールバックします\n"

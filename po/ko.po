@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-04 13:23+0900\n"
+"POT-Creation-Date: 2004-04-14 19:06+0900\n"
 "PO-Revision-Date: 2004-03-22 19:09+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -15,70 +15,73 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:49
+#: src/main.c:52
 msgid "Display u2ps version"
 msgstr ""
 
-#: src/main.c:51
+#: src/main.c:54
 msgid "Specify output filename"
 msgstr ""
 
-#: src/main.c:51
+#: src/main.c:54
 msgid "FILE"
 msgstr ""
 
-#: src/main.c:53
+#: src/main.c:56
 msgid "Encoding of the input"
 msgstr ""
 
-#: src/main.c:53
+#: src/main.c:56
 msgid "ENCODING"
 msgstr ""
 
-#: src/main.c:55
+#: src/main.c:58
 msgid "Specify libgnomeprint font family name"
 msgstr ""
 
-#: src/main.c:55
+#: src/main.c:58
 msgid "FAMILYNAME"
 msgstr ""
 
-#: src/main.c:57
+#: src/main.c:60
 msgid "Parse input file as mail"
 msgstr ""
 
-#: src/main.c:81
+#: src/main.c:62
+msgid "Set the content title"
+msgstr ""
+
+#: src/main.c:62
+msgid "TITLE"
+msgstr ""
+
+#: src/main.c:86
 #, c-format
 msgid "%s version is %s\n"
 msgstr ""
 
 #. Header Page
-#: src/main.c:422
+#: src/main.c:518
 #, c-format
-msgid "%d/%d Pages"
-msgstr "%d/%d 페이지"
+msgid "Page %d/%d"
+msgstr ""
 
-#: src/main.c:465
+#: src/main.c:560
 msgid "%B %e %Y %H:%M"
 msgstr ""
 
-#: src/main.c:528
-msgid "Specify filename for input.\n"
-msgstr ""
-
-#: src/main.c:534
+#: src/main.c:628
 msgid "Input and output file is same.\n"
 msgstr ""
 
-#: src/main.c:540
+#: src/main.c:636
 #, c-format
 msgid "File is not found: %s\n"
 msgstr ""
 
-#: src/main.c:680
-msgid "Falling back to UTF-8\n"
-msgstr ""
-
-#: src/main.c:714
+#: src/main.c:846
 msgid "File is not valid UTF-8\n"
 msgstr ""
+
+#~ msgid "%d/%d Pages"
+#~ msgstr "%d/%d 페이지"

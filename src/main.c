@@ -507,6 +507,21 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   fontheight = gnome_font_get_ascender(font) + gnome_font_get_descender(font);
   lineheight = fontheight + 5;
 
+  /* Arabic support for date */
+  if( enable_arabic ) {
+    GSList* tmp_slist = g_slist_append(NULL, g_strdup(datestr));
+    GSList* tmp_slist2 = shape_arabic(tmp_slist);
+    GSList* rtl_slist_p = NULL;
+
+    g_free(tmp_slist->data);
+    g_slist_free(tmp_slist);
+    tmp_slist = parse_fribidi(tmp_slist2, &rtl_slist_p);
+    g_slist_free(tmp_slist2);
+    g_slist_free(rtl_slist_p);
+    datestr = tmp_slist->data;
+    g_slist_free(tmp_slist);
+  }
+
   /* Header Date */
   datew = gnome_font_get_width_utf8(font, datestr);
   if( !parse_mail ) {
