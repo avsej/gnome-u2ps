@@ -25,6 +25,7 @@
 
 #include <glib.h>
 
+gchar* u2ps_convert(gchar* str, gchar* codeset);
 gchar* tab2spaces(gchar* str);
 
 #endif /* _UTIL_H */

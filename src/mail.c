@@ -21,12 +21,13 @@
  * Boston, MA 02111-1307, USA. * *
  */
 
-#include <mail.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <glib.h>
 
 #include "util.h"
+#include "mail.h"
 
 static const gchar* worthy_headers[] = {
   "From",
@@ -42,6 +43,8 @@ static const gchar* worthy_headers[] = {
   NULL,
 };
 
+static const guchar* hexchar = "0123456789ABCDEF";
+
 /* Returns UTF-8 str */
 static gchar*
 base64_decode(guchar* subject) {
@@ -51,7 +54,7 @@ base64_decode(guchar* subject) {
   guchar buf[4];
   gint i = 0;
   guchar* tmpbuf;
-  gchar* prefix;
+  gchar* prefix = NULL;
   gchar* b64codeset = NULL;
 
   GError* conv_error = NULL;
@@ -85,9 +88,68 @@ base64_decode(guchar* subject) {
   }
 
   cursor = strstr(cursor, "?");
-  if( g_ascii_strncasecmp(cursor, "?b?", strlen("?b?")) ) {
+  /* Q encoding is supported */
+  if( !g_ascii_strncasecmp(cursor, "?q?", strlen("?q?")) ) {
+    cursor += strlen("?q?");
+    while( *cursor != '\0' && strncmp(cursor, "?=", strlen("?=")) != 0 ) {
+      guchar* cpos;
+      guchar c = 0;
+
+      if( *cursor != '=' ) {
+        tmpbuf = g_malloc0(strlen(result)+2);
+        strcpy(tmpbuf, result);
+        g_free(result);
+        result = tmpbuf;
+        if( *cursor == '_' ) {
+          result[strlen(result)] = ' ';
+        } else {
+          result[strlen(result)] = *cursor;
+        }
+        cursor++;
+        continue;
+      }
+
+      cursor++;
+      cpos = strchr(hexchar, *cursor);
+      if( !cpos ) {
+        g_free(b64codeset);
+        g_free(prefix);
+        return g_strdup(subject); /* Never allow fault */
+      }
+      c = (cpos - hexchar) << 4;
+      cursor++;
+      cpos = strchr(hexchar, *cursor);
+      if( !cpos ) {
+        g_free(b64codeset);
+        g_free(prefix);
+        return g_strdup(subject); /* Never allow fault */
+      }
+      c += cpos - hexchar;
+      tmpbuf = g_malloc0(sizeof(gchar)*(strlen(result)+2));
+      strcpy(tmpbuf, result);
+      tmpbuf[strlen(result)] = c;
+      g_free(result);
+      result = tmpbuf;
+      cursor++;
+    }
+    if( !strncmp(cursor, "?=", strlen("?=")) ) {
+      cursor += strlen("?=");
+    }
+    tmpbuf = u2ps_convert(result, b64codeset);
+    if( tmpbuf ) {
+      g_free(result);
+      result = tmpbuf;
+    }
+    tmpbuf = g_strconcat(prefix, result, cursor, NULL);
     g_free(prefix);
-    return g_strdup(subject); /* B encoding support, currently */
+    g_free(result);
+    return tmpbuf;
+  }
+
+  /* B encoding is supported */
+  if( g_ascii_strncasecmp(cursor, "?b?", strlen("?b?")) != 0 ) {
+    g_free(prefix);
+    return g_strdup(subject);
   }
   cursor += strlen("?b?");
 
@@ -115,18 +177,11 @@ base64_decode(guchar* subject) {
 
   /* Convert to UTF-8 */
   tmpbuf = g_convert(result, -1, "UTF-8", b64codeset, &bytes_read, &bytes_written, &conv_error);
-  if( conv_error ) {
-    g_print("%s\n", conv_error->message);
-    g_error_free(conv_error);
-    if( tmpbuf )
-      g_free(tmpbuf);
-
+  tmpbuf = u2ps_convert(result, b64codeset);
+  if( tmpbuf ) {
     g_free(result);
-    g_free(prefix);
-    return g_strdup(subject);
+    result = tmpbuf;
   }
-  g_free(result);
-  result = tmpbuf;
 
   tmpbuf = g_strconcat(prefix, result, cursor+2, NULL);
   g_free(result);
@@ -194,6 +249,12 @@ get_charset(GSList* mail_slist)
     charset = g_strdup(charset);
   }
 
+  /* Cut the other Content-Type properties after ';' */
+  tmpbuf = strchr(charset, ';');
+  if( tmpbuf ) {
+    *tmpbuf = '\0';
+  }
+
   g_free(content_type);
 
   return charset;
@@ -206,9 +267,6 @@ get_subject(GSList* mail_slist)
   gchar* subject = g_strdup("");
   gchar* tmpbuf;
   gint i;
-
-  GError* conv_error = NULL;
-  gsize bytes_read, bytes_written;
 
   g_return_val_if_fail(mail_slist != NULL, NULL);
   g_return_val_if_fail(g_slist_length(mail_slist) > 0, NULL);

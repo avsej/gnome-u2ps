@@ -23,6 +23,29 @@
 
 #include "util.h"
 
+/* Wrapper for g_convert() */
+gchar*
+u2ps_convert(gchar* str, gchar* codeset) {
+  GError* conv_error = NULL;
+  gsize bytes_read, bytes_written;
+  gchar* result;
+
+  g_return_val_if_fail(str != NULL, NULL);
+  g_return_val_if_fail(*str != '\0', g_strdup(""));
+
+  result = g_convert(str, -1, "UTF-8", codeset, &bytes_read, &bytes_written, &conv_error);
+
+  if( conv_error ) {
+    g_warning("%s\n", conv_error->message);
+    g_error_free(conv_error);
+    if( result )
+      g_free(result);
+    return NULL;
+  }
+
+  return result;
+}
+
 gchar*
 tab2spaces(gchar* str) {
   gint i;
