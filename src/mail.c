@@ -26,6 +26,8 @@
 #include <string.h>
 #include <glib.h>
 
+#include "util.h"
+
 static const gchar* worthy_headers[] = {
   "From",
   "To",
@@ -254,6 +256,10 @@ get_subject(GSList* mail_slist)
       }
     }
   }
+
+  tmpbuf = tab2spaces(subject);
+  g_free(subject);
+  subject = tmpbuf;
 
   return subject;
 }

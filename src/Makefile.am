@@ -13,4 +13,6 @@ u2ps_LDADD = \
 u2ps_SOURCES = \
 	main.c \
 	mail.h \
-	mail.c
+	mail.c \
+	util.h \
+	util.c

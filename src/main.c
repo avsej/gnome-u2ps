@@ -31,6 +31,7 @@
 #include <libgnome/libgnome.h>
 
 #include "mail.h"
+#include "util.h"
 
 static gboolean show_version = FALSE;
 static gboolean parse_mail = FALSE;
@@ -629,13 +630,8 @@ int main(int argc, char** argv) {
      mail header handling */
   for(i=0;i<g_slist_length(text_slist);i++) {
     gchar* tmpbuf = g_slist_nth_data(text_slist, i);
-    if( strstr(tmpbuf, "\t") ) {
-      gchar** tmpbufpp = g_strsplit(tmpbuf, "\t", -1);
-      gchar* newbuf = g_strjoinv("        ", tmpbufpp);
-      g_strfreev(tmpbufpp);
-      g_slist_nth(text_slist, i)->data = newbuf;
-      g_free(tmpbuf);
-    }
+    g_slist_nth(text_slist, i)->data = tab2spaces(tmpbuf);
+    g_free(tmpbuf);
   }
 
   /* Prepare Printing */

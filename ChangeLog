@@ -8,6 +8,9 @@
 	* src/mail.c: Fix to show 2nd line of worthy header
 	* src/mail.c: Simplify the logic to detect 2nd line subject
 	* src/mail.c: Decode the subject in the body
+	* src/util.h, util.c: tab2spaces function
+	* src/main.c: Use tab2spaces func
+	* src/mail.c: Replace tab in the subject
 
 2004-03-31  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
