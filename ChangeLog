@@ -8,6 +8,7 @@
 	* src/main.c: Add font fallback.
 	* src/main.c: Add gpfamily option to support users' favorite.
 	* configure.in: Add Korean(ko)
+	* src/main.c: Default family is now Luxi Sans.
 
 2004-03-22  Yukihiro Nakai  <nakai@gnome.gr.jp>
 

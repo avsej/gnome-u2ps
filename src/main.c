@@ -34,7 +34,7 @@ char const *output_filename = NULL;
 char const *input_encoding = NULL;
 char const *familyname = NULL; /* Fallback set */
 
-#define DEFAULT_FAMILY_NAME "Kochi Gothic"
+#define DEFAULT_FAMILY_NAME "Luxi Sans"
 
 static struct poptOption const
 u2ps_popt_options[] = {
