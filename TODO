@@ -1,5 +1,7 @@
 TODO:
 
+- Get input from stdin
+- Output to stdout
 - Relative coordinate to draw lines/texts
 - Arabic support
 - Thai support
@@ -10,5 +12,6 @@ TODO:
 - Direct PDF support with libgnomeprint
 
 - a2ps landscape, portrait mode
+- Title option
 - a2ps page layout
 - More a2ps options to replace it
