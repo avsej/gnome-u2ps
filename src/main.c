@@ -71,6 +71,42 @@ u2ps_show_version()
     g_print(_("%s version is %s\n"), PACKAGE, VERSION);
 }
 
+/* g_str_is_eucjp()
+   if text is eucjp --> returns TRUE
+   if text is ascii --> returns TRUE
+   if text is UTF-8 --> returns FALSE
+*/
+gboolean
+g_str_is_eucjp(gchar* str) {
+  gint shift = 0;
+  gint i;
+  guchar* text = (guchar*)str;
+
+  if( text == NULL || *text == '\0' )
+    return TRUE;
+
+  for(i=0;i<strlen(text);i++) {
+    if( text[i] & 0x80 ) {
+      if( text[i] < 0xA1 && text[i] > 0xFE ) {
+        /* Outside of EUC-JP mapping area */
+        return FALSE;
+      }
+      if( shift == 0 || shift == 1 ) {
+        shift++;
+      } else if( shift == 2 ) {
+        shift = 1;
+      }
+    } else {
+      if( shift == 1 ) {
+        return FALSE;
+      }
+      shift = 0;
+    }
+  }
+
+  return TRUE;
+}
+
 gchar*
 g_utf8_strndup(gchar* utf8text, gint n)
 {
@@ -256,6 +292,10 @@ int main(int argc, char** argv) {
   /* Concatenate long line */
   for(i=0;i<g_slist_length(text_slist);i++) {
     gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+
+    if( strlen(tmpbuf) <= 0 )
+      continue;
+
     if( tmpbuf[strlen(tmpbuf)-1] != '\n' ) {
       while(++i<g_slist_length(text_slist)) {
         tmpbuf = g_strconcat(tmpbuf, g_slist_nth_data(text_slist, i), NULL);
@@ -271,9 +311,27 @@ int main(int argc, char** argv) {
   /* Cut the newline character */
   for(i=0;i<g_slist_length(text_slist);i++) {
     gchar* tmpbuf = g_slist_nth_data(text_slist, i);
-    if( tmpbuf[strlen(tmpbuf)-1] == '\n' )
+
+    if( strlen(tmpbuf) > 1 && !strcmp(tmpbuf+strlen(tmpbuf)-2, "\r\n") ) {
+      tmpbuf[strlen(tmpbuf)-2] = '\0';
+    } else if( strlen(tmpbuf) > 0 && tmpbuf[strlen(tmpbuf)-1] == '\n' )
       tmpbuf[strlen(tmpbuf)-1] = '\0';
   }
+
+  /* Japanese codeset auto detection - EUC-JP */
+  if( !input_encoding && !strncmp(locale, "ja_JP", strlen("ja_JP")) ) {
+    gboolean is_eucjp = TRUE;
+    for(i=0;i<g_slist_length(text_slist);i++) {
+      gchar* tmpbuf = g_slist_nth_data(text_slist, i);
+      if( !(is_eucjp = g_str_is_eucjp(tmpbuf)) )
+        break;
+    }
+    if( is_eucjp ) {
+      input_encoding = "EUC-JP";
+    }
+  }
+
+  //g_print("input_encoding: %s\n", input_encoding);
 
   /* Encoding option */
   if( input_encoding ) {
