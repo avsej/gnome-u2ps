@@ -105,7 +105,52 @@ u2ps_show_version()
  */
 gboolean
 g_str_is_hkscs(gchar* str) {
-  return FALSE;
+  guchar shift = 0; /* Shift state is 1st byte as unsigned char */
+  gint i;
+  guchar* text = (guchar*)str;
+
+  if( text == NULL || *text == '\0' )
+    return TRUE;
+
+  for(i=0;i<strlen(text);i++) {
+    if( shift != 0 ) {
+      if( (shift>=0xA1 && shift<=0xC6) || (shift>=0xC9 && shift<=0xF9) ) {
+        if( !((text[i]>=0x40 && text[i]<=0x7E) || (text[i]>=0xA1 && text[i]<=0xFE) )) {
+          return FALSE;
+        }
+      } else if( shift == 0xF9 ) {
+        if(text[i]<0xD6 || text[i]>0xFE) {
+          return FALSE;
+        }
+      } else if( shift>=0x88 && shift<=0xA0 ) {
+        if(text[i]<0x40 || text[i]>0xFE) {
+          return FALSE;
+        }
+      } else if( shift>=0xC6 && shift<=0xC8 ) {
+        if(text[i]<0xA1 || text[i]>0xFE) {
+          return FALSE;
+        }
+      } else if( shift>=0xFA && shift<=0xFE ) {
+        if(text[i]<0xA1 || text[i]>0xFE) {
+          return FALSE;
+        }
+      }
+      shift = 0;
+      continue;
+    }
+
+    /* shift == 0 */
+    if( (text[i]>=0xA1 && text[i]<=0xC6)
+        || (text[i]>=0xC9 && text[i]<=0xF9)
+        || text[i] == 0xF9
+        || (text[i]>=0x88 && text[i]<=0xA0)
+        || (text[i]>=0xC6 && text[i]<=0xC8)
+        || (text[i]>=0xFA && text[i]<=0xFE) ) {
+      shift = text[i];
+    }
+  }
+
+  return TRUE;
 }
 
 /* g_str_is_big5()
@@ -522,7 +567,7 @@ int main(int argc, char** argv) {
   gdouble lineheight = 0;
   gdouble pagew = 1.0;
   gdouble pageh = 0;
-  FILE* fp;
+  FILE* fp = NULL;
   GSList* text_slist = NULL; /* Text list */
   gchar buf[1024];
   guint pages = 1;
@@ -570,17 +615,18 @@ int main(int argc, char** argv) {
   }
 
   if( !filename ) {
-    g_print(_("Specify filename for input.\n"));
-    exit(0);
+    fp = stdin;
   }
 
   /* Detect inputfile overwrite mistake */
-  if( output_filename && !strcmp(output_filename, filename) ) {
+  if( filename && output_filename && !strcmp(output_filename, filename) ) {
     g_error(_("Input and output file is same.\n"));
   }
 
   /* Read the Input Text */
-  fp = fopen(filename, "r");
+  if( !fp ) {
+    fp = fopen(filename, "r");
+  }
   if( !fp ) {
     g_error(_("File is not found: %s\n"), filename);
   }
@@ -742,6 +788,8 @@ int main(int argc, char** argv) {
   /* Get Page Title */
   if( content_title ) {
     page_title = (gchar*)content_title;
+  } else if( fp == stdin ) {
+    page_title = "stdin";
   } else if( parse_mail ) {
     page_title = get_subject(text_slist);
   } else {

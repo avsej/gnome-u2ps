@@ -1,8 +1,10 @@
 2004-04-07  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
-	* Add some comments about Big5 and HKSCS
-	* Fix Big5 comments with more reliable infomation
-	* Add --title option.
+	* src/main.c: Add some comments about Big5 and HKSCS
+	* src/main.c: Fix Big5 comments with more reliable infomation
+	* src/main.c: Add --title option.
+	* src/main.c: Accept stdin for input.
+	* configure.in: Bump up to 0.0.2
 
 2004-04-05  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
