@@ -13,3 +13,4 @@ missing
 mkinstalldirs
 *.tar.gz
 *.spec
+compile
