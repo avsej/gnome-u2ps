@@ -269,64 +269,49 @@ decode_quoted_printable(gchar* str) {
 }
 
 GSList*
-decode_qp_message(GSList* text_slist) {
+decode_qp_message(GSList* body_slist) {
   GSList* new_slist = NULL;
+  GSList* tmp_slist = NULL;
   guint i = 0;
-  gboolean quoted_printable = FALSE;
-  gboolean message_body = FALSE; /* Should not decode headers */
-  gchar* prevtext = NULL;
+  gboolean do_concat = FALSE;
 
-  g_return_val_if_fail(text_slist != NULL, NULL);
+  g_return_val_if_fail(body_slist != NULL, NULL);
 
-  /* Checking the header declares quoted-printable or not */
-  for(i=0;i<g_slist_length(text_slist);i++) {
-    gchar* text = g_slist_nth_data(text_slist, i);
-    if( !g_ascii_strncasecmp(text, "Content-Transfer-Encoding: ", strlen("Content-Transfer-Encoding: ")) ) {
-      if( !g_ascii_strncasecmp(text+strlen("Content-Transfer-Encoding: "), "quoted-printable", strlen("quoted-printable")) ) {
-        quoted_printable = TRUE;
-        break;
-      }
+  /* concat lines if the tail is '=' */
+  do_concat = FALSE;
+  for(i=0;i<g_slist_length(body_slist);i++) {
+    gchar* text = g_slist_nth_data(body_slist, i);
+    
+    if( do_concat ) {
+      gchar* last = g_slist_last(tmp_slist)->data;
+      gchar* tmpbuf = NULL;
+      g_assert(last != NULL);
+      tmpbuf = g_strdup(last);
+      if (tmpbuf[strlen(tmpbuf)-1] == '=')
+        tmpbuf[strlen(tmpbuf)-1] = '\0';
+      g_slist_last(tmp_slist)->data = g_strconcat(tmpbuf, text, NULL);
+      g_free(last);
+      g_free(tmpbuf);
+    } else {
+      tmp_slist = g_slist_append(tmp_slist, g_strdup(text));
+    }
+
+    if( tmp_slist != NULL && text[strlen(text)-1] == '=' ) {
+      do_concat = TRUE;
+    } else {
+      do_concat = FALSE;
     }
   }
 
-  if( !quoted_printable )
-    return NULL;
-
-  for(i=0;i<g_slist_length(text_slist);i++) {
+  for(i=0;i<g_slist_length(tmp_slist);i++) {
     gchar* newtext = NULL;
-    gchar* text = g_slist_nth_data(text_slist, i);
-
-    /* Header part should not be decoded */
-    if( !message_body ) {
-      if( *text == '\0' ) {
-        message_body = TRUE;
-      }
-      new_slist = g_slist_append(new_slist, g_strdup(text));
-      continue;
-    }
-
-    if( prevtext ) {
-      gchar* tmpbuf = g_strconcat(prevtext, text, NULL);
-      text = tmpbuf;
-      g_free(prevtext);
-      prevtext = NULL;
-    }
-
-    if( text[strlen(text)-1] == '=' ) {
-      text[strlen(text)-1] = '\0';
-      prevtext = text;
-      continue;
-    }
+    gchar* text = g_slist_nth_data(tmp_slist, i);
 
     newtext = decode_quoted_printable(text);
     new_slist = g_slist_append(new_slist, newtext);
   }
 
-  if( prevtext ) {
-    new_slist = g_slist_append(new_slist, prevtext);
-    g_free(prevtext);
-  }
-
+  g_slist_free(tmp_slist);
   return new_slist;
 }
 
@@ -1180,13 +1165,7 @@ mail_new(GSList* mail_slist) {
   }
   /* Decode quoted-printing body */
   if( result->is_qp ) {
-    guint i = 0;
-    GSList* body_slist = NULL;
-    for(i=0;i<g_slist_length(result->body_slist);i++) {
-      gchar* text = g_slist_nth_data(result->body_slist, i);
-      gchar* newtext = decode_quoted_printable(text);
-      body_slist = g_slist_append(body_slist, newtext);
-    }
+    GSList* body_slist = decode_qp_message(result->body_slist);
     g_slist_free(result->body_slist);
     result->body_slist = body_slist;
   }

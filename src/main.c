@@ -806,16 +806,6 @@ int main(int argc, char** argv) {
     mail = mail_new(text_slist);
   }
 
-
-  /* Decode Quoted Printable Message - Must happen before codeset convert */
-  if( parse_mail ) {
-    new_slist = decode_qp_message(text_slist);
-    if( new_slist ) {
-      g_slist_free(text_slist);
-      text_slist = new_slist;
-    }
-  }
-
   /* Encoding option */
   if( !parse_mail && input_encoding ) {
     GSList* convtext_slist = NULL;
