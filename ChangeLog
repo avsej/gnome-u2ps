@@ -1,3 +1,8 @@
+2004-04-10  Yukihiro Nakai  <nakai@gnome.gr.jp>
+
+	* src/main.c: Change g_convert arg from EUC-JP to EUC-JISX0213
+	* src/main.c: Change g_convert arg from SJIS to SHIFT_JISX0213
+
 2004-04-07  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
 	* src/main.c: Add some comments about Big5 and HKSCS

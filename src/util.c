@@ -66,3 +66,24 @@ tab2spaces(gchar* str) {
 
   return tmpbuf;
 }
+
+void
+debug_dump(guchar* str)
+{
+  gint i;
+
+  for(i=0;i<16;i++) {
+    if( str[i] == '\0')
+      break;
+
+    if( i != 0 )
+      g_print(" ");
+
+    if( i == 8 )
+      g_print(" ");
+
+    g_print("%X", str[i]);
+  }
+
+  g_print("\n");
+}

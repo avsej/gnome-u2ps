@@ -290,6 +290,8 @@ g_str_is_gb18030(gchar* str) {
    EUC-JP code mapping:
      1st byte: 0xA1-0xFE
      2nd byte: 0xA1-0xFE
+
+   TODO: JISX0213 mapping area
 */
 gboolean
 g_str_is_eucjp(gchar* str) {
@@ -325,6 +327,8 @@ g_str_is_eucjp(gchar* str) {
    if text is sjis --> returns TRUE
    if text is ascii --> returns TRUE
    if text is UTF-8,etc --> returns FALSE
+
+   TODO: jisx0213 mapping area
 */
 gboolean
 g_str_is_sjis(gchar* str) {
@@ -750,7 +754,7 @@ int main(int argc, char** argv) {
         break;
     }
     if( is_eucjp ) {
-      input_encoding = "EUC-JP";
+      input_encoding = "EUC-JISX0213";
     }
   }
 
@@ -763,7 +767,7 @@ int main(int argc, char** argv) {
         break;
     }
     if( is_sjis ) {
-      input_encoding = "SJIS";
+      input_encoding = "SHIFT_JISX0213";
     }
   }
 
@@ -781,6 +785,9 @@ int main(int argc, char** argv) {
        if( conv_error ) {
          g_free(conv_after);
          g_print("%s\n", conv_error->message);
+g_print("bytes_read: %d\n", bytes_read);
+         //debug_dump(conv_before+bytes_read);
+         debug_dump(conv_before);
          g_print(_("Falling back to UTF-8\n"));
          break; /* Falling back to UTF-8 */
        }

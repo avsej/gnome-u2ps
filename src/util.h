@@ -27,6 +27,7 @@
 
 gchar* u2ps_convert(gchar* str, gchar* codeset);
 gchar* tab2spaces(gchar* str);
+void debug_dump(guchar* str);
 
 /* Arabic */
 GSList* shape_arabic(GSList* text_slist);
