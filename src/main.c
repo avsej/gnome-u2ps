@@ -552,7 +552,6 @@ int main(int argc, char** argv) {
     gboolean is_eucjp = TRUE;
     for(i=0;i<g_slist_length(text_slist);i++) {
       gchar* tmpbuf = g_slist_nth_data(text_slist, i);
-g_print("eucjp: %s\n", g_str_is_eucjp(tmpbuf) ? "TRUE" : "FALSE");
       if( !(is_eucjp = g_str_is_eucjp(tmpbuf)) )
         break;
     }
@@ -574,7 +573,7 @@ g_print("eucjp: %s\n", g_str_is_eucjp(tmpbuf) ? "TRUE" : "FALSE");
     }
   }
 
-  g_print("input_encoding: \"%s\"\n", input_encoding);
+  //g_print("input_encoding: \"%s\"\n", input_encoding);
 
   /* Encoding option */
   if( input_encoding ) {
