@@ -45,6 +45,105 @@ static const gchar* worthy_headers[] = {
 
 static const guchar* hexchar = "0123456789ABCDEF";
 
+/* Decode quoted-printable message */
+static gchar*
+decode_quoted_printable(gchar* str) {
+  guint i = 0;
+  gboolean shift = 0;
+  gchar *cursor = NULL, *result = NULL;
+  guchar c = '\0';
+
+  g_return_val_if_fail(str != NULL, NULL);
+
+  cursor = result = g_new0(gchar, strlen(str)+1);
+
+  for(i=0;i<strlen(str);i++) {
+    if( shift == 0 && str[i] == '=' ) {
+      shift = 1;
+      c = '\0';
+    } else if( shift == 1 ) {
+      gchar* pos = strchr((gchar*)hexchar, str[i]);
+      if( pos ) {
+        c = (pos - (gchar*)hexchar)<<4;
+      }
+      shift = 2;
+    } else if( shift == 2 ) {
+      gchar* pos = strchr((gchar*)hexchar, str[i]);
+      if( pos ) {
+        c += pos - (gchar*)hexchar;
+      }
+      *cursor++ = c;
+      shift = 0;
+    } else {
+      *cursor++ = str[i];
+    }
+  }
+
+  return result;
+}
+
+GSList*
+decode_qp_message(GSList* text_slist) {
+  GSList* new_slist = NULL;
+  guint i = 0;
+  gboolean quoted_printable = FALSE;
+  gboolean message_body = FALSE; /* Should not decode headers */
+  gchar* prevtext = NULL;
+
+  g_return_val_if_fail(text_slist != NULL, NULL);
+
+  /* Checking the header declares quoted-printable or not */
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* text = g_slist_nth_data(text_slist, i);
+    if( !g_ascii_strncasecmp(text, "Content-Transfer-Encoding: ", strlen("Content-Transfer-Encoding: ")) ) {
+      if( !g_ascii_strncasecmp(text+strlen("Content-Transfer-Encoding: "), "quoted-printable", strlen("quoted-printable")) ) {
+        quoted_printable = TRUE;
+        break;
+      }
+    }
+  }
+
+  if( !quoted_printable )
+    return NULL;
+
+  for(i=0;i<g_slist_length(text_slist);i++) {
+    gchar* newtext = NULL;
+    gchar* text = g_slist_nth_data(text_slist, i);
+
+    /* Header part should not be decoded */
+    if( !message_body ) {
+      if( *text == '\0' ) {
+        message_body = TRUE;
+      }
+      new_slist = g_slist_append(new_slist, g_strdup(text));
+      continue;
+    }
+
+    if( prevtext ) {
+      gchar* tmpbuf = g_strconcat(prevtext, text, NULL);
+      text = tmpbuf;
+      g_free(prevtext);
+      prevtext = NULL;
+    }
+
+    if( text[strlen(text)-1] == '=' ) {
+      text[strlen(text)-1] = '\0';
+      prevtext = text;
+      continue;
+    }
+
+    newtext = decode_quoted_printable(text);
+    new_slist = g_slist_append(new_slist, newtext);
+  }
+
+  if( prevtext ) {
+    new_slist = g_slist_append(new_slist, prevtext);
+    g_free(prevtext);
+  }
+
+  return new_slist;
+}
+
 /* Returns UTF-8 str */
 static gchar*
 base64_decode(guchar* subject) {
@@ -386,8 +485,6 @@ cut_headers(GSList* mail_slist)
     gchar* text = g_slist_nth_data(mail_slist, i);
     new_slist = g_slist_append(new_slist, text);
   }
-
-  g_slist_free(mail_slist);
 
   return new_slist;
 }

@@ -773,6 +773,15 @@ int main(int argc, char** argv) {
 
   //g_print("input_encoding: \"%s\"\n", input_encoding);
 
+  /* Decode Quoted Printable Message - Must happen before codeset convert */
+  if( parse_mail ) {
+    new_slist = decode_qp_message(text_slist);
+    if( new_slist ) {
+      g_slist_free(text_slist);
+      text_slist = new_slist;
+    }
+  }
+
   /* Encoding option */
   if( input_encoding ) {
     GSList* convtext_slist = NULL;
@@ -822,7 +831,9 @@ int main(int argc, char** argv) {
 
   /* Cut Headers */
   if( parse_mail ) {
-    text_slist = cut_headers(text_slist);
+    new_slist = cut_headers(text_slist);
+    g_slist_free(text_slist);
+    text_slist = new_slist;
   }
 
   /* UTF-8 check */
