@@ -146,7 +146,7 @@ decode_qp_message(GSList* text_slist) {
 
 /* Returns UTF-8 str */
 static gchar*
-base64_decode(guchar* subject) {
+base64_decode_sub(guchar* subject) {
   const gchar* base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   guchar* cursor;
   guchar* result = g_strdup("");
@@ -288,6 +288,33 @@ base64_decode(guchar* subject) {
   result = tmpbuf;
 
   return result;
+}
+
+/* Recurse base64 decode */
+gchar*
+base64_decode(guchar* str) {
+  gchar* tmpbuf = NULL;
+  gchar* decoded = base64_decode_sub(str);
+
+  if( !decoded )
+    return g_strdup(str);
+
+  while( strstr(decoded, "=?") ) {
+    tmpbuf = base64_decode_sub(decoded);
+
+    if( !tmpbuf )
+      break;
+
+    if( !strcmp(tmpbuf, decoded) ) {
+      g_free(tmpbuf);
+      break;
+    }
+
+    g_free(decoded);
+    decoded = tmpbuf;
+  }
+
+  return decoded;
 }
 
 gchar*
