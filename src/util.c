@@ -49,6 +49,12 @@ static iso2022jp_pair iso2022jp_table[] = {
   { "\x2d\x32", 0x2471 }, /* CIRCLED DIGIT 18 */
   { "\x2d\x33", 0x2472 }, /* CIRCLED DIGIT 19 */
   { "\x2d\x34", 0x2473 }, /* CIRCLED DIGIT 20 */
+  { "\x2d\x35", 0x2160 }, /* ROMAN NUMERAL ONE */ /* NOT WORK */
+  { "\x2d\x4a", 0x330D }, /* SQUARE KARORII */ /* NOT WORK */
+  { "\x2d\x6a", 0x3231 }, /* PARENTHESIZED IDEOGRAPH STOCK */
+  { "\x2d\x4B", 0x3326 }, /* SQUARE DORU */ /* NOT WORK */
+  { "\x2d\x45", 0x3327 }, /* SQUARE TON */ /* NOT WORK */
+  { "\x7c\x71", 0x2170 }, /* SMALL ROMAN NUMERAL ONE */ /* NOT WORK */
   { NULL, 0 },
 };
 
@@ -78,7 +84,10 @@ u2ps_iso2022jp_to_utf8(gchar* str)
         str[bytes_read] = '\x24'; /* Hiragana A */
         str[bytes_read+1] = '\x22';
         result = u2ps_iso2022jp_to_utf8(str);
-        g_unichar_to_utf8(iso2022jp_table[i].to, result+bytes_written);
+        g_assert(result != NULL);
+        if( g_unichar_to_utf8(iso2022jp_table[i].to, result+bytes_written) != 3) {
+          g_error("unichar is not 3 byte utf8");
+        }
         g_error_free(conv_error);
         conv_error = NULL;
         break;
