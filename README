@@ -4,9 +4,16 @@ gnome-u2ps - Unicode text to PostScript
   GNU a2ps never takes any effort to support Asian languages and Unicode.
   U2ps provides a modern, code-reusable replacement of a2ps.
 
+WHY
+---
+- For more effective testing of libgnomeprint
+- To let GNOME power to CUI
+- English speakers are satisfied with a2ps, but non-English not
+- To avoid to hack horrible codes in a2ps
+
 DEPENDENTS
 ----------
-libgnomeprint-2.2
+libgnomeprint-2.2 (2.5.4 or later)
 
 AUTHOR
 ------
