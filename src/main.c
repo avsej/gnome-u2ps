@@ -81,6 +81,17 @@ u2ps_show_version()
     g_print(_("%s version is %s\n"), PACKAGE, VERSION);
 }
 
+/* g_str_is_hkscs()
+   if text is HKSCS  --> returns TRUE
+   if text is ascii --> returns TRUE
+   if text is UTF-8,etc --> returns FALSE
+
+   Official HKSCS-2001 site:
+   http://www.info.gov.hk/digital21/eng/hkscs/introduction.html
+
+ */
+/* g_str_is_hkscs() */
+
 /* g_str_is_big5()
    if text is Big5  --> returns TRUE
    if text is ascii --> returns TRUE
@@ -89,6 +100,14 @@ u2ps_show_version()
    Big5 code mapping:
     1st byte: 0xA1-0xC6, 0xC9-0xF9
     2nd byte: 0x40-0x7E, 0xA1-0xFE
+
+   ETen extention is not supported yet.
+
+   Government charset site:
+   http://www.cns11643.gov.tw/web/index.jsp
+
+   Nice description of Big5 variations:
+   http://www.linux.org.tw/mail-archie/cle-devel/cle-devel.200009/msg00100.html
 */
 gboolean
 g_str_is_big5(gchar* str) {
