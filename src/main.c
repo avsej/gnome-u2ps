@@ -562,11 +562,11 @@ draw_pageframe(GnomePrintContext* context, GnomeFontFace* face, gdouble xoffset,
 }
 
 int main(int argc, char** argv) {
-  GnomePrintJob* job;
-  GnomePrintContext* context;
-  GnomePrintConfig* config;
-  GnomeFont* font;
-  GnomeFontFace* face;
+  GnomePrintJob* job = NULL;
+  GnomePrintContext* context = NULL;
+  GnomePrintConfig* config = NULL;
+  GnomeFont* font = NULL;
+  GnomeFontFace* face = NULL;
   gdouble fontheight = 0;
   gdouble lineheight = 0;
   gdouble pagew = 1.0;
@@ -775,30 +775,24 @@ int main(int argc, char** argv) {
 
   /* Encoding option */
   if( input_encoding ) {
-    gsize bytes_read, bytes_written;
-    GError *conv_error = NULL;
     GSList* convtext_slist = NULL;
 
     for(i=0;i<g_slist_length(text_slist);i++) {
        gchar* conv_before = g_slist_nth_data(text_slist, i);
-       gchar* conv_after = g_convert(conv_before, -1, "UTF-8", input_encoding, &bytes_read, &bytes_written, &conv_error);
-       if( conv_error ) {
-         g_free(conv_after);
-         g_print("%s\n", conv_error->message);
-g_print("bytes_read: %d\n", bytes_read);
-         //debug_dump(conv_before+bytes_read);
-         debug_dump(conv_before);
-         g_print(_("Falling back to UTF-8\n"));
-         break; /* Falling back to UTF-8 */
+       gchar* conv_after = u2ps_convert(conv_before, (gchar*)input_encoding);
+
+       if( !conv_after ) {
+         if( convtext_slist ) {
+           g_slist_free(convtext_slist);
+           convtext_slist = NULL;
+         }
+         break;
        }
+
        convtext_slist = g_slist_append(convtext_slist, conv_after);
     }
 
-    if( conv_error ) {
-      /* Let's forget the trial of conversion */
-      g_error_free(conv_error);
-      g_slist_free(convtext_slist);
-    } else {
+    if( convtext_slist ) {
       /* convtext_slist is now text_slist */
       g_slist_free(text_slist);
       text_slist = convtext_slist;
@@ -892,6 +886,7 @@ g_print("bytes_read: %d\n", bytes_read);
 
   /* Abort when any fallback doesn't make sense */
   g_assert(face != NULL);
+  g_assert(GNOME_IS_FONT_FACE(face));
 
   /* Text Font */
   font = gnome_font_face_get_font_default(face, 12);

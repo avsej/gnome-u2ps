@@ -23,23 +23,89 @@
 
 #include "util.h"
 
+typedef struct _iso2022jp_pair {
+  gchar* from;
+  gunichar to;
+} iso2022jp_pair;
+
+static iso2022jp_pair iso2022jp_table[] = {
+  { "\x2d\x21", 0x2460 }, /* CIRCLED DIGIT ONE */
+  { "\x2d\x22", 0x2461 }, /* CIRCLED DIGIT TWO */
+  { "\x2d\x23", 0x2462 }, /* CIRCLED DIGIT THREE */
+  { NULL, 0 },
+};
+
+/* u2ps_iso2022jp_to_utf8() converts iso-2022-jp char which
+   is not recognized by iconv */
+gchar*
+u2ps_iso2022jp_to_utf8(gchar* str)
+{ 
+  GError* conv_error = NULL;
+  gsize bytes_read, bytes_written;
+  gchar* result = NULL;
+  gint i;
+                                                                                
+  g_return_val_if_fail(str != NULL, NULL);
+  g_return_val_if_fail(*str != '\0', g_strdup(""));
+                                                                                
+  result = g_convert(str, -1, "UTF-8", "ISO-2022-JP", &bytes_read, &bytes_written, &conv_error);
+
+  if( conv_error ) {
+    if( result ) {
+      g_free(result);
+    }
+
+    i=0;
+    while(iso2022jp_table[i].from != NULL) {
+      if( !strncmp(str + bytes_read, iso2022jp_table[i].from, strlen(iso2022jp_table[i].from)) ) {
+        str[bytes_read] = '\x24'; /* Hiragana A */
+        str[bytes_read+1] = '\x22';
+        result = u2ps_iso2022jp_to_utf8(str);
+        g_unichar_to_utf8(iso2022jp_table[i].to, result+bytes_written);
+        g_error_free(conv_error);
+        conv_error = NULL;
+        break;
+      }
+      i++;
+    }
+  }
+  if( conv_error ) {
+    g_warning("%s\n", conv_error->message);
+    debug_dump(str+bytes_read);
+    g_error_free(conv_error);
+    return NULL;
+  }
+                                                                                
+  return result;
+}
+
 /* Wrapper for g_convert() */
 gchar*
 u2ps_convert(gchar* str, gchar* codeset) {
   GError* conv_error = NULL;
   gsize bytes_read, bytes_written;
-  gchar* result;
+  gchar* result = NULL;
 
   g_return_val_if_fail(str != NULL, NULL);
-  g_return_val_if_fail(*str != '\0', g_strdup(""));
+  //g_return_val_if_fail(*str != '\0', g_strdup(""));
+  if( *str == '\0' )
+    return g_strdup("");
 
   result = g_convert(str, -1, "UTF-8", codeset, &bytes_read, &bytes_written, &conv_error);
 
   if( conv_error ) {
+    if( result ) {
+      g_free(result);
+    }
+
+    if( !g_ascii_strcasecmp(codeset, "ISO-2022-JP") ) {
+      g_error_free(conv_error);
+      result = u2ps_iso2022jp_to_utf8(str);
+      return result;
+    }
+
     g_warning("%s\n", conv_error->message);
     g_error_free(conv_error);
-    if( result )
-      g_free(result);
     return NULL;
   }
 

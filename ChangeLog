@@ -2,6 +2,11 @@
 
 	* src/main.c: Change g_convert arg from EUC-JP to EUC-JISX0213
 	* src/main.c: Change g_convert arg from SJIS to SHIFT_JISX0213
+	* src/util.c: Add debug_dump
+	* src/main.c: Set face NULL correctly.
+	* src/util.c,src/util.h: Add u2ps_iso2022jp_to_utf8() to handle
+	  Circled Digit Numbers
+	* src/main.c: Use u2ps_convert
 
 2004-04-07  Yukihiro Nakai  <nakai@gnome.gr.jp>
 
