@@ -18,3 +18,6 @@ u2ps_SOURCES = \
 	util.h \
 	util.c \
 	shape_arabic.c
+
+splint:
+	splint $(INCLUDES) $(u2ps_SOURCES)
