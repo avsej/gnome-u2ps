@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: u2ps 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-04-30 20:49+0900\n"
+"POT-Creation-Date: 2004-08-17 14:07+0900\n"
 "PO-Revision-Date: 2004-03-22 19:09+0900\n"
 "Last-Translator: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
 "Language-Team: Yukihiro Nakai <nakai@gnome.gr.jp>\n"
@@ -15,71 +15,87 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:53
+#: src/main.c:57
 msgid "Display u2ps version"
 msgstr ""
 
-#: src/main.c:55
+#: src/main.c:59
 msgid "Specify output filename"
 msgstr ""
 
-#: src/main.c:55
+#: src/main.c:59
 msgid "FILE"
 msgstr ""
 
-#: src/main.c:57
+#: src/main.c:61
 msgid "Encoding of the input"
 msgstr ""
 
-#: src/main.c:57
+#: src/main.c:61
 msgid "ENCODING"
 msgstr ""
 
-#: src/main.c:59
+#: src/main.c:63
 msgid "Specify libgnomeprint font family name"
 msgstr ""
 
-#: src/main.c:59
+#: src/main.c:63
 msgid "FAMILYNAME"
 msgstr ""
 
-#: src/main.c:61
+#: src/main.c:65
 msgid "Parse input file as mail"
 msgstr ""
 
-#: src/main.c:63
+#: src/main.c:67
 msgid "Set the content title"
 msgstr ""
 
-#: src/main.c:63
+#: src/main.c:67
 msgid "TITLE"
 msgstr ""
 
-#: src/main.c:87
+#: src/main.c:69
+msgid "Disable gzip/bzip2 autodetection"
+msgstr ""
+
+#: src/main.c:93
 #, c-format
 msgid "%s version is %s\n"
 msgstr ""
 
 #. Header Page
-#: src/main.c:535
+#: src/main.c:541
 #, c-format
 msgid "Page %d/%d"
 msgstr ""
 
-#: src/main.c:577
+#: src/main.c:583
 msgid "%B %e %Y %H:%M"
 msgstr ""
 
-#: src/main.c:645
+#: src/main.c:659
 msgid "Input and output file is same.\n"
 msgstr ""
 
-#: src/main.c:653
+#: src/main.c:669
+msgid "Could not initialize GnomeVFS"
+msgstr ""
+
+#: src/main.c:671
+msgid "Fetching..."
+msgstr ""
+
+#: src/main.c:675
 #, c-format
 msgid "File is not found: %s\n"
 msgstr ""
 
-#: src/main.c:879
+#: src/main.c:687
+msgid "DONE\n"
+msgstr ""
+
+#: src/main.c:1048
 msgid "File is not valid UTF-8\n"
 msgstr ""
 
