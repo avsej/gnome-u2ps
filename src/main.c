@@ -324,6 +324,7 @@ get_unbreakable(gchar* text) {
     unbreakable[i] = !breakable[i]; /* Set default */
   }
 
+  g_free(breakable);
   return unbreakable;
 }
 
@@ -363,6 +364,7 @@ enable_hyphenation(GSList* text_slist, GnomeFont* font, gdouble maxw)
               }
               /* Do nothing when all is unbreakable */
             }
+            g_free(unbreakable);
             newtext2 = g_utf8_strndup(cursor, j-1);
             new_slist = g_slist_append(new_slist, newtext2);
             cursor = g_utf8_offset_to_pointer(cursor, j-1);
