@@ -30,7 +30,7 @@
 #include "util.h"
 #include "mail.h"
 
-static const gchar* worthy_headers[] = {
+static const gchar* visible_headers[] = {
   "From",
   "To",
   "Reply-To",
@@ -977,7 +977,7 @@ cut_headers(GSList* mail_slist)
 {
   gint i,j;
   GSList* new_slist = NULL;
-  gboolean worthy_on = FALSE; /* Header is continuing */
+  gboolean visible_on = FALSE; /* Header is continuing */
   gboolean subject_on = FALSE; /* Subject handling */
 
   for(i=0;i<g_slist_length(mail_slist);i++) {
@@ -992,12 +992,12 @@ cut_headers(GSList* mail_slist)
       if( subject_on )
         continue;
 
-      if( worthy_on ) {
+      if( visible_on ) {
         new_slist = g_slist_append(new_slist, text);
       }
       continue;
     }
-    worthy_on = FALSE;
+    visible_on = FALSE;
     subject_on = FALSE;
 
     /* Decode the subject */
@@ -1011,10 +1011,10 @@ cut_headers(GSList* mail_slist)
       subject_on = TRUE;
     }
 
-    for(j=0;worthy_headers[j] != NULL;j++) {
-      if( !g_ascii_strncasecmp(text, worthy_headers[j], strlen(worthy_headers[j])) ) {
+    for(j=0;visible_headers[j] != NULL;j++) {
+      if( !g_ascii_strncasecmp(text, visible_headers[j], strlen(visible_headers[j])) ) {
         new_slist = g_slist_append(new_slist, text);
-        worthy_on = TRUE;
+        visible_on = TRUE;
         break;
       }
     }
@@ -1067,8 +1067,8 @@ mail_shape_header(Mail* mail) {
 
     j = 0;
     is_visible = FALSE;
-    while(worthy_headers[j] != NULL) {
-      if( !g_ascii_strncasecmp(text, worthy_headers[j], strlen(worthy_headers[j])) && !strncmp(text + strlen(worthy_headers[j]), ": ", 2) ) {
+    while(visible_headers[j] != NULL) {
+      if( !g_ascii_strncasecmp(text, visible_headers[j], strlen(visible_headers[j])) && !strncmp(text + strlen(visible_headers[j]), ": ", 2) ) {
         is_visible = TRUE;
         break;
       }
