@@ -47,7 +47,7 @@ gboolean enable_arabic = FALSE;
 GSList* rtl_slist = NULL;
 Mail* mail = NULL;
 
-#define DEFAULT_FAMILY_NAME "Luxi Sans"
+#define DEFAULT_FAMILY_NAME "DejaVu Sans Mono"
 
 #define g_str_is_euckr(str) g_str_is_eucjp(str)
 
@@ -501,13 +501,13 @@ draw_pageframe_single(GnomePrintContext* context, GnomeFontFace* face, gdouble x
   gnome_print_setlinewidth(context, 0.5);
 
   gnome_print_setrgbcolor(context, 0.95, 0.95, 0.95);
-  gnome_print_rect_filled(context, xoffset+30, pageh-60, pagew-40, 20);
+  //gnome_print_rect_filled(context, xoffset+30, pageh-60, pagew-40, 20);
   gnome_print_setrgbcolor(context, 0, 0, 0);
-  gnome_print_rect_stroked(context, xoffset+30, 40, pagew-40, pageh-80);
+  //gnome_print_rect_stroked(context, xoffset+30, 40, pagew-40, pageh-80);
   gnome_print_line_stroked(context, xoffset+30, pageh-60, xoffset+20+pagew-30, pageh-60);
 
   /* Header Font */
-  font = gnome_font_face_get_font_default(face, 14);
+  font = gnome_font_face_get_font_default(face, 8);
   g_assert(font != NULL);
   gnome_print_setfont(context, font);
 
@@ -789,7 +789,7 @@ int main(int argc, char** argv) {
         gzclose(gzfp);
 
         if( unlink(tmpname) != 0 ) {
-          g_warning("Unlink the temporary file %s failed.\n");
+          g_warning("Unlink the temporary file %s failed.\n", tmpname);
         }
         g_free(tmpname);
 
@@ -1100,7 +1100,7 @@ int main(int argc, char** argv) {
   g_assert(GNOME_IS_FONT_FACE(face));
 
   /* Text Font */
-  font = gnome_font_face_get_font_default(face, 12);
+  font = gnome_font_face_get_font_default(face, 8);
   g_assert(font != NULL);
   gnome_print_setfont(context, font);
   /* Text Font Height */
@@ -1147,12 +1147,12 @@ int main(int argc, char** argv) {
         gboolean is_rtl = (gboolean)g_slist_nth_data(rtl_slist, j+nthline);
         gdouble textw = gnome_font_get_width_utf8(font, text);
         if( is_rtl ) {
-          gnome_print_moveto(context, xoffset + 40 + (pagew-60) - textw, pageh -40 -20 -lineheight*(j+1));
+          gnome_print_moveto(context, xoffset + 40 + (pagew-60) - textw, pageh -40 -30 -lineheight*(j+1));
         } else {
-          gnome_print_moveto(context, xoffset + 40, pageh -40 -20 -lineheight*(j+1));
+          gnome_print_moveto(context, xoffset + 40, pageh -40 -30 -lineheight*(j+1));
         }
       } else {
-        gnome_print_moveto(context, xoffset + 40, pageh -40 -20 -lineheight*(j+1));
+        gnome_print_moveto(context, xoffset + 40, pageh -40 -30 -lineheight*(j+1));
       }
       gnome_print_show(context, text);
     }
