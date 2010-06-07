@@ -812,10 +812,9 @@ int main(int argc, char** argv) {
 #endif
       }
     } else {
-      fseek(fp, 0, SEEK_SET);
-      while(fgets(buf, sizeof(buf), fp) > 0 ) {
+      do {
         text_slist = g_slist_append(text_slist, g_strdup(buf));
-      }
+      } while(fgets(buf, sizeof(buf), fp) > 0 );
       fclose(fp);
     }
   }
