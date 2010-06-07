@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct _iso2022jp_pair {
   gchar* from;
@@ -72,15 +73,15 @@ static iso2022jp_pair iso2022jp_table[] = {
    is not recognized by iconv */
 gchar*
 u2ps_iso2022jp_to_utf8(gchar* str)
-{ 
+{
   GError* conv_error = NULL;
   gsize bytes_read, bytes_written;
   gchar* result = NULL;
   gint i;
-                                                                                
+
   g_return_val_if_fail(str != NULL, NULL);
   g_return_val_if_fail(*str != '\0', g_strdup(""));
-                                                                                
+
   result = g_convert(str, -1, "UTF-8", "ISO-2022-JP", &bytes_read, &bytes_written, &conv_error);
 
   if( conv_error ) {
@@ -111,7 +112,7 @@ u2ps_iso2022jp_to_utf8(gchar* str)
     g_error_free(conv_error);
     return NULL;
   }
-                                                                                
+
   return result;
 }
 
@@ -199,7 +200,7 @@ dump_text_slist(GSList* text_slist) {
   guint i = 0;
 
   for(i=0;i<g_slist_length(text_slist);i++) {
-    g_print("%s\n", g_slist_nth_data(text_slist, i));
+    g_print("%s\n", (gchar*) g_slist_nth_data(text_slist, i));
   }
 }
 
